@@ -8,7 +8,7 @@ const app = express();
 
 // Enable CORS for all routes
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://ayanna-kiyanna-new-frintend-v66f.vercel.app/'],
+  origin: ['http://localhost:5173', 'https://ayanna-kiyanna-new-frintend-v66f.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
