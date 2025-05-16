@@ -6,11 +6,13 @@ const config = require('config');
 
 const app = express();
 
-// Middleware
+// Enable CORS for all routes
 app.use(cors({
-  origin: 'http://localhost:5173', // or your frontend URL
-  credentials: true
+  origin: ['http://localhost:5173', 'https://ayanna-kiyanna-new-frintend-v66f.vercel.app/'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 
 // DB Connection - Modern version (Mongoose 6+)
