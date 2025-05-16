@@ -1,0 +1,17 @@
+{
+     "firebase": {
+    "projectId": "ayanna-kiyanna-31241",
+    "privateKeyId": "17e79f04ed841fe3e7df4163fe0a8b245aea7147",
+    "privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCsilJFr+g3dKO4\nLs/+8lpf46pVD1U0TcJGgO9/W2o4UUjC5rW2NkCExKivtdeil50pEIosSRvJiDs6\nASF7g+YbE6M0JjBTYqWLVPqY38YLmMypLJ2iWiThP3mwboKXfaUUFpmr3g6tO/yt\ndvm3HAWWtqUiQFpdU5KlkeHXSDg1I/f7nPUrOGqYxK4fjcte4tE12Wp4fgrbcI3Y\nC4T0A9dhE8lps1p0zQMq7rubvWhggYzpNDNZLxFOVdJzd2fPILv2LJmzr/astiC3\nXMqaQJOO9HEX/oqw2PifH5qfZ6PjfgVH2EGT2xSWLaJrHhryBLIzaE0O3fOs6I+R\na+Oxqm25AgMBAAECggEAA1pOvfbsmsND+SzDsu8PrYRVh4CcRb9rEoan4MAsgLqn\noM3t4wQL3eiaZIuyjIDIt4cQQEsNZK2mhPqHpYhLHOSVS8qgLsagc+QrWHQku431\nECaDS6fXxp6+pRyIohv5bLoBs3LFsz0SrGY+9P1w6FxVOiSo/N5GX7xFeLL5EKNB\nkrPUlix3Gu2L35V6+3V233eDoaeJRNwZF9ofe4ouTgb+h4OI4rI00aeUFQoMcKdq\ngcGPaM7EHbEbMissXknQs5j7CC/AZfB0ikFB/7Zlffk6EsEV3jwAKlbOsplffbzp\nO04HaUi6siyQQeThweMxEwuTzkJfcnzCqxu6o/B9lwKBgQDrGsnkL91Sw4iVCULh\nECve9NDdIgWg4F8i0a3TWSSge5vVnbIre03DRlYAHf38T2Zzl3TnSTUa575yALcZ\nNd5ysnkONwDZpSnhL7mZ06q5eFw0aqaoJpVVWFrKqLmhCBkRowAdHg/YWQFeRBG6\n/IXg62xQyW4iwQSm1agOJj5v4wKBgQC74AowPWF4PnBNhv6DmRpiibmhtR4SDhdb\njmnjhqLwf0o1bbaGRZCihYjN3Gb6JdcFYjes4Weie6dhZemCRMsVN7Q47zV6kPmb\njhxa5UMXOYc9yVqS+NofPOybalpeTJa14xu+E95WFu1CjYp8JfOeRlh8Jz9t2Kaq\nvrNM6semswKBgQChuL6x2X78BIb6RfGcUXxsFKlrw5Btlom6sNNKc6JvRjfu3FgH\n8vyN298im37vxUprLv76bfA6vrjRQM6yZ8zJxxzge1N5Y1SIk0SvnNtuU23RnJ9h\nQZEtsOZbS27NZ32fFSnp3Zj2sFrxlg9AOZ56FldexwCcpXtmq8e7W/FNEwKBgQCW\niU2gmY4f6ufRNvl4OJULn48+IwGVNfVBRztRM/AbA+NSLDa0H8lkb9rOGGvqw6cm\niSxTOcjwSGQ1hpMz7itLNPcTJ5iSPNfD7HqL2meHlHDo8Q3B9ePQY+CyJuWB6ZxY\n4UC5bPIZyQUS7paoI0Cw8Wy1Dj2kppPk/Chu2TBgQQKBgQCkVfgcb5icPvYJwUyN\nbd5yAYD/qbmTLBAM/GD9cnMIwMlhiwk5Nu0uyfJZRNgGHl7vPPB8TRGFjdoM/Sxu\nONdvMKadBLXkLfWeRUMcI/Ur9oxgW6ryNFFxctpYTILUD23j1TWFo4RzTklIdzY6\n7SEjLeeLcCvbMrcCH2HZnGT0xA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@ayanna-kiyanna-31241.iam.gserviceaccount.com",
+    "clientEmail": "firebase-adminsdk-fbsvc@ayanna-kiyanna-31241.iam.gserviceaccount.com",
+    "clientId": "102841615175065409218",
+    "clientX509CertUrl": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40ayanna-kiyanna-31241.iam.gserviceaccount.com",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "universe_domain": "googleapis.com"
+  },
+  "mongoURI": "mongodb+srv://jagathkumara720922:n4ge5mSxGj4FAKNU@cluster0.zhlwb.mongodb.net/",
+  "jwtSecret": "936406a45692bb91c4e590809cbdd34419bdf64b98ae8cab9ce490a60a01ca1e"
+}
