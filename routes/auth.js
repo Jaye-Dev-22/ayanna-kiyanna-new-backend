@@ -1,40 +1,39 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { check } = require('express-validator');
-const authController = require('../controllers/authController');
-const auth = require('../middleware/auth');
+const { check } = require("express-validator");
 
-// @route   POST api/auth/register
-// @desc    Register user
-// @access  Public
+// import middlewares
+const auth = require("../middleware/auth");
+
+// import controllers
+const {
+  register,
+  login,
+  getMe,
+  firebaseGoogleAuth
+} = require("../controllers/authController");
+
+// Auth routes
 router.post(
-  '/register',
+  "/register",
   [
-    check('email', 'Please include a valid email').isEmail(),
-    check('fullName', 'Name is required').not().isEmpty(),
-    check('password', 'Please enter a password with 6+ characters').isLength({ min: 6 })
+    check("email", "Please include a valid email").isEmail(),
+    check("fullName", "Name is required").not().isEmpty(),
+    check("password", "Please enter a password with 6+ characters").isLength({ min: 6 })
   ],
-  authController.register
+  register
 );
 
-// @route   POST api/auth/login
-// @desc    Login user
-// @access  Public
 router.post(
-  '/login',
+  "/login",
   [
-    check('email', 'Please include a valid email').isEmail(),
-    check('password', 'Password is required').exists()
+    check("email", "Please include a valid email").isEmail(),
+    check("password", "Password is required").exists()
   ],
-  authController.login
+  login
 );
 
-// @route   GET api/auth/me
-// @desc    Get logged-in user
-// @access  Private
-router.get('/me', auth, authController.getMe);
-
-// /api/auth/firebase-google
-router.post('/firebase-google', authController.firebaseGoogleAuth);
+router.get("/me", auth, getMe);
+router.post("/firebase-google", firebaseGoogleAuth);
 
 module.exports = router;
