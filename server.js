@@ -10,6 +10,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/api/proxy/get_key', async (req, res) => {
+  try {
+    const response = await axios.get('https://extensions.aitopia.ai/extensions/app/get_key');
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: 'Proxy error' });
+  }
+});
+
 // DB Connection - Modern version (Mongoose 6+)
 mongoose.connect(process.env.MONGODB_URI || config.get('mongoURI'))
   .then(() => console.log('MongoDB Connected'))
