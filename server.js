@@ -8,7 +8,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173', // or your frontend URL
+  origin: 'https://ayanna-kiyanna-new-backend.vercel.app/', // or your frontend URL
   credentials: true
 }));
 app.use(express.json());
