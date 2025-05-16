@@ -6,18 +6,20 @@ const config = require('config');
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Improved CORS Middleware
+const corsOptions = {
+  origin: [
+    'http://localhost:5173', // Your development frontend
+    'https://ayanna-kiyanna-new-frintend.vercel.app' // Your production frontend
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
 
-app.get('/api/proxy/get_key', async (req, res) => {
-  try {
-    const response = await axios.get('https://extensions.aitopia.ai/extensions/app/get_key');
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: 'Proxy error' });
-  }
-});
+app.use(cors(corsOptions)); // Use the configured CORS options
+
+app.use(express.json());
 
 // DB Connection - Modern version (Mongoose 6+)
 mongoose.connect(process.env.MONGODB_URI || config.get('mongoURI'))
