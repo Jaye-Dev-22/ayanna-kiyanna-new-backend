@@ -33,7 +33,16 @@ const corsOptions = {
 };
 
 // Apply CORS middleware first
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
 // Handle preflight requests
 app.options('*', cors(corsOptions));
