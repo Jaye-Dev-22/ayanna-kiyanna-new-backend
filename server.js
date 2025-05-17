@@ -9,7 +9,6 @@ const app = express();
 // Enhanced CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://ayanna-kiyanna-new-frontend.vercel.app',
   'https://ayanna-kiyanna-new-frintend.vercel.app'
 ];
 
