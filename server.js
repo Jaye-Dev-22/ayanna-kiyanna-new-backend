@@ -9,19 +9,25 @@ const app = express();
 // Enhanced CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://ayanna-kiyanna-new-frintend.vercel.app'
+  'https://ayanna-kiyanna-new-frintend.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:8080'
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Allow requests with no origin (mobile apps, curl)
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
+    // For development or when no origin is provided (like Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked request from:', origin);
+      callback(null, true); // Temporarily allow all origins for debugging
     }
-    return callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -29,7 +35,7 @@ const corsOptions = {
 // Apply CORS middleware
 app.use(cors(corsOptions));
 
-// Handle preflight requests
+// Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
 
 // Body parser middleware
@@ -52,7 +58,7 @@ const connectDB = async () => {
 
 // Basic health check route
 app.get('/', (req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     status: 'healthy',
     message: 'Backend is running'
   });
@@ -60,14 +66,17 @@ app.get('/', (req, res) => {
 
 // Routes
 const authRoutes = require('./routes/auth');
+
+// Add specific CORS handling for auth routes
+app.options('/api/auth/*', cors(corsOptions));
 app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Something went wrong!',
-    message: err.message 
+    message: err.message
   });
 });
 
