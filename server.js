@@ -38,6 +38,19 @@ app.use(cors(corsOptions));
 // Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
 
+// Add a middleware to handle OPTIONS requests
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
+    res.status(200).send();
+    return;
+  }
+  next();
+});
+
 // Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
