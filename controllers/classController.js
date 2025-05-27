@@ -105,11 +105,12 @@ exports.createClass = async (req, res) => {
       });
     }
 
-    const { category, locationLink } = req.body;
+    const { category, platform, locationLink } = req.body;
 
     const newClass = new Class({
       type,
       category,
+      platform,
       locationLink,
       grade,
       date,
@@ -142,7 +143,7 @@ exports.updateClass = async (req, res) => {
   }
 
   try {
-    const { type, category, locationLink, grade, date, startTime, endTime, venue, capacity, specialNote, isActive } = req.body;
+    const { type, category, platform, locationLink, grade, date, startTime, endTime, venue, capacity, specialNote, isActive } = req.body;
 
     let classItem = await Class.findById(req.params.id);
     if (!classItem) {
@@ -193,6 +194,7 @@ exports.updateClass = async (req, res) => {
     // Update fields
     classItem.type = type;
     classItem.category = category;
+    classItem.platform = platform;
     classItem.locationLink = locationLink;
     classItem.grade = grade;
     classItem.date = date;

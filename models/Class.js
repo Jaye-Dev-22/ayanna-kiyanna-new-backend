@@ -11,6 +11,12 @@ const ClassSchema = new mongoose.Schema({
     enum: ['Hall Class', 'Group Class', 'Individual Class', 'Special Class', 'Other'],
     required: true
   },
+  platform: {
+    type: String,
+    enum: ['Physical', 'Online', 'Hybrid'],
+    required: true,
+    default: 'Physical'
+  },
   locationLink: {
     type: String,
     trim: true,
