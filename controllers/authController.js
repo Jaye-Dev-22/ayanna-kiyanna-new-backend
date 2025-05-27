@@ -223,6 +223,7 @@ exports.firebaseGoogleAuth = async (req, res) => {
       });
 
       await user.save();
+      await emailService.sendWelcomeEmail(email, name || email.split('@')[0]);
     }
 
     const payload = {
