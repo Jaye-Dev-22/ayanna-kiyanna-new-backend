@@ -79,10 +79,15 @@ app.get('/', (req, res) => {
 
 // Routes
 const authRoutes = require('./routes/auth');
+const classRoutes = require('./routes/classes');
 
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
 app.use('/api/auth', authRoutes);
+
+// Add specific CORS handling for class routes
+app.options('/api/classes/*', cors(corsOptions));
+app.use('/api/classes', classRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
