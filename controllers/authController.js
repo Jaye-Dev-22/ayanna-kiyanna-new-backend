@@ -218,7 +218,8 @@ exports.firebaseGoogleAuth = async (req, res) => {
         fullName: name || email.split('@')[0],
         password: 'AyannaKiyannaDefault',
         role: 'user',
-        firebaseUid: uid
+        firebaseUid: uid,
+        emailVerified: true
       });
 
       await user.save();
