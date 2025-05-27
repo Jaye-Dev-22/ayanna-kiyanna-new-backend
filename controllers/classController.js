@@ -259,7 +259,7 @@ exports.getAvailableGrades = async (req, res) => {
 exports.getAvailableVenues = async (req, res) => {
   try {
     const venues = await Class.distinct('venue');
-    const defaultVenues = ['Home(Group Class)', 'Manawa (Hall class)', 'Yatiyanthota Nethma (Hall class)'];
+    const defaultVenues = ['Home - De Zoisa Hall', 'Manawa Ruwanwella', 'Opulent Yatiyanthota'];
 
     // Combine default venues with custom venues from database
     const allVenues = [...new Set([...defaultVenues, ...venues])];
