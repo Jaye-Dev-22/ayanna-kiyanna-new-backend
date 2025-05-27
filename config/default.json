@@ -13,5 +13,9 @@
   "universe_domain": "googleapis.com"
   },
   "mongoURI": "mongodb+srv://jagathkumara720922:n4ge5mSxGj4FAKNU@cluster0.zhlwb.mongodb.net/",
-  "jwtSecret": "936406a45692bb91c4e590809cbdd34419bdf64b98ae8cab9ce490a60a01ca1e"
+  "jwtSecret": "936406a45692bb91c4e590809cbdd34419bdf64b98ae8cab9ce490a60a01ca1e",
+  "email": {
+    "user": "ayannakiyannanotify@gmail.com",
+    "pass": "sdjp xpmq lzjv eeuu"
+  }
 }

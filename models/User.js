@@ -25,6 +25,14 @@ const UserSchema = new mongoose.Schema({
     enum: ['user', 'admin', 'Student', 'Teacher'],
     default: 'user'
   },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  firebaseUid: {
+    type: String,
+    sparse: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -34,7 +42,7 @@ const UserSchema = new mongoose.Schema({
 // Hash password before saving
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);

@@ -10,7 +10,9 @@ const {
   register,
   login,
   getMe,
-  firebaseGoogleAuth
+  firebaseGoogleAuth,
+  sendEmailOTP,
+  verifyEmailOTP
 } = require("../controllers/authController");
 
 // Auth routes
@@ -31,6 +33,25 @@ router.post(
     check("password", "Password is required").exists()
   ],
   login
+);
+
+// Email verification routes
+router.post(
+  "/send-email-otp",
+  [
+    check("email", "Please include a valid email").isEmail(),
+    check("fullName", "Name is required").not().isEmpty()
+  ],
+  sendEmailOTP
+);
+
+router.post(
+  "/verify-email-otp",
+  [
+    check("email", "Please include a valid email").isEmail(),
+    check("otp", "OTP is required").isLength({ min: 6, max: 6 })
+  ],
+  verifyEmailOTP
 );
 
 router.get("/me", auth, getMe);

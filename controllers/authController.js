@@ -1,8 +1,10 @@
 const User = require('../models/User');
+const OTP = require('../models/OTP');
 const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const config = require('config');
 const { OAuth2Client } = require('google-auth-library');
+const emailService = require('../services/emailService');
 
 // Initialize Firebase Admin
 const serviceAccount = {
@@ -22,9 +24,62 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// Register new user
+// Send OTP for email verification
+exports.sendEmailOTP = async (req, res) => {
+  const { email, fullName } = req.body;
+
+  try {
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser && existingUser.emailVerified) {
+      return res.status(400).json({ message: 'Email is already registered and verified' });
+    }
+
+    // Generate and save OTP
+    const otpCode = await OTP.createOTP(email, 'email_verification');
+
+    // Send OTP email
+    const emailResult = await emailService.sendOTPEmail(email, otpCode, fullName);
+
+    if (!emailResult.success) {
+      return res.status(500).json({ message: 'Failed to send verification email' });
+    }
+
+    res.json({
+      message: 'Verification code sent to your email',
+      email: email
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Verify email OTP
+exports.verifyEmailOTP = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // Verify OTP
+    const verificationResult = await OTP.verifyOTP(email, otp, 'email_verification');
+
+    if (!verificationResult.success) {
+      return res.status(400).json({ message: verificationResult.message });
+    }
+
+    res.json({
+      message: 'Email verified successfully',
+      verified: true
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Register new user (requires email verification)
 exports.register = async (req, res) => {
-  const { email, fullName, password } = req.body;
+  const { email, fullName, password, emailVerified } = req.body;
 
   try {
     // Check if user exists
@@ -33,16 +88,39 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create new user
+    // Check if email was verified (for regular registration)
+    if (!emailVerified) {
+      return res.status(400).json({ message: 'Email verification required before registration' });
+    }
+
+    // Verify that OTP was actually verified for this email
+    const verifiedOTP = await OTP.findOne({
+      email,
+      purpose: 'email_verification',
+      verified: true
+    });
+
+    if (!verifiedOTP) {
+      return res.status(400).json({ message: 'Email verification not found. Please verify your email first.' });
+    }
+
+    // Create new user with verified email
     user = new User({
       email,
       fullName,
       password,
-      role: 'user' // Default role
+      role: 'user', // Default role
+      emailVerified: true
     });
 
     // Save user
     await user.save();
+
+    // Clean up verified OTP
+    await OTP.deleteMany({ email, purpose: 'email_verification' });
+
+    // Send welcome email
+    await emailService.sendWelcomeEmail(email, fullName);
 
     // Create JWT payload
     const payload = {
@@ -55,7 +133,15 @@ exports.register = async (req, res) => {
     // Generate token
     const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '1h' });
 
-    res.status(201).json({ token });
+    res.status(201).json({
+      token,
+      user: {
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        emailVerified: user.emailVerified
+      }
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
@@ -91,7 +177,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '1h' });
 
     // Return token AND user data
-    res.json({ 
+    res.json({
       token,
       user: {
         email: user.email,
@@ -134,7 +220,7 @@ exports.firebaseGoogleAuth = async (req, res) => {
         role: 'user',
         firebaseUid: uid
       });
-      
+
       await user.save();
     }
 
@@ -147,7 +233,7 @@ exports.firebaseGoogleAuth = async (req, res) => {
 
     const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '1h' });
 
-    res.json({ 
+    res.json({
       token,
       user: {
         email: user.email,
