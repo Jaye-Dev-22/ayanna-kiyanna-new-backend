@@ -6,6 +6,28 @@ const ClassSchema = new mongoose.Schema({
     enum: ['Normal', 'Special'],
     required: true
   },
+  category: {
+    type: String,
+    enum: ['Hall Class', 'Group Class', 'Individual Class', 'Special Class', 'Other'],
+    required: true
+  },
+  locationLink: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(v) {
+        // Allow empty string or valid URL
+        if (!v || v === '') return true;
+        try {
+          new URL(v);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      },
+      message: 'Invalid URL format for location link'
+    }
+  },
   grade: {
     type: String,
     required: true,

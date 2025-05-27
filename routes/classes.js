@@ -23,6 +23,19 @@ const {
 const classValidation = [
   check('type', 'Type is required and must be Normal or Special')
     .isIn(['Normal', 'Special']),
+  check('category', 'Category is required and must be one of: Hall Class, Group Class, Individual Class, Special Class, Other')
+    .isIn(['Hall Class', 'Group Class', 'Individual Class', 'Special Class', 'Other']),
+  check('locationLink', 'Location link must be a valid URL')
+    .optional()
+    .custom((value) => {
+      if (!value || value === '') return true;
+      try {
+        new URL(value);
+        return true;
+      } catch (e) {
+        throw new Error('Location link must be a valid URL');
+      }
+    }),
   check('grade', 'Grade is required')
     .not().isEmpty()
     .trim(),
