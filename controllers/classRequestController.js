@@ -102,7 +102,7 @@ exports.getStudentClassRequests = async (req, res) => {
 // Get all class requests (Admin)
 exports.getAllClassRequests = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, grade } = req.query;
+    const { page = 1, limit = 10, status, grade, search } = req.query;
 
     // Build filter object
     const filter = {};
@@ -123,6 +123,21 @@ exports.getAllClassRequests = async (req, res) => {
     // Filter by grade if specified
     if (grade) {
       requests = requests.filter(request => request.class.grade === grade);
+    }
+
+    // Filter by search term if specified
+    if (search) {
+      requests = requests.filter(request => {
+        const studentName = `${request.student?.firstName || ''} ${request.student?.lastName || ''}`.toLowerCase();
+        const studentId = request.student?.studentId?.toLowerCase() || '';
+        const className = `${request.class?.grade || ''} ${request.class?.category || ''}`.toLowerCase();
+        const searchTerm = search.toLowerCase();
+
+        return studentName.includes(searchTerm) ||
+               studentId.includes(searchTerm) ||
+               className.includes(searchTerm) ||
+               request.reason?.toLowerCase().includes(searchTerm);
+      });
     }
 
     const total = await ClassRequest.countDocuments(filter);
@@ -269,6 +284,107 @@ exports.rejectClassRequest = async (req, res) => {
 
     res.json({
       message: 'Class request rejected',
+      request: classRequest
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Change class request status (Admin)
+exports.changeClassRequestStatus = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { requestId } = req.params;
+    const { status, adminNote } = req.body;
+
+    const classRequest = await ClassRequest.findById(requestId)
+      .populate({
+        path: 'student',
+        options: { virtuals: true }
+      })
+      .populate('class');
+
+    if (!classRequest) {
+      return res.status(404).json({ message: 'Class request not found' });
+    }
+
+    const oldStatus = classRequest.status;
+
+    // If changing from approved to rejected/pending, remove student from class
+    if (oldStatus === 'Approved' && status !== 'Approved') {
+      // Remove student from class
+      if (classRequest.class.enrolledStudents) {
+        classRequest.class.enrolledStudents = classRequest.class.enrolledStudents.filter(
+          id => !id.equals(classRequest.student._id)
+        );
+        await classRequest.class.save();
+      }
+
+      // Remove class from student
+      if (classRequest.student.enrolledClasses) {
+        classRequest.student.enrolledClasses = classRequest.student.enrolledClasses.filter(
+          id => !id.equals(classRequest.class._id)
+        );
+        await classRequest.student.save();
+      }
+    }
+
+    // If changing from rejected/pending to approved, add student to class
+    if (oldStatus !== 'Approved' && status === 'Approved') {
+      // Check class capacity
+      const enrolledCount = classRequest.class.enrolledStudents ? classRequest.class.enrolledStudents.length : 0;
+      if (enrolledCount >= classRequest.class.capacity) {
+        return res.status(400).json({ message: 'Class is at full capacity' });
+      }
+
+      // Add student to class
+      if (!classRequest.class.enrolledStudents) {
+        classRequest.class.enrolledStudents = [];
+      }
+      classRequest.class.enrolledStudents.push(classRequest.student._id);
+      await classRequest.class.save();
+
+      // Add class to student
+      if (!classRequest.student.enrolledClasses) {
+        classRequest.student.enrolledClasses = [];
+      }
+      classRequest.student.enrolledClasses.push(classRequest.class._id);
+      await classRequest.student.save();
+    }
+
+    // Update request status
+    classRequest.status = status;
+    classRequest.adminResponse = {
+      actionBy: req.user.id,
+      actionDate: new Date(),
+      actionNote: adminNote || `Status changed from ${oldStatus} to ${status}`
+    };
+
+    await classRequest.save();
+
+    // Create notification for student
+    await Notification.createNotification({
+      recipient: classRequest.student.userId,
+      type: 'class_request_status_change',
+      title: 'Class Request Status Update',
+      message: `Your class enrollment request status has been updated to ${status}.`,
+      data: {
+        classRequestId: classRequest._id,
+        classId: classRequest.class._id,
+        oldStatus: oldStatus,
+        newStatus: status,
+        adminNote: adminNote
+      }
+    });
+
+    res.json({
+      message: `Class request status changed from ${oldStatus} to ${status} successfully`,
       request: classRequest
     });
   } catch (err) {

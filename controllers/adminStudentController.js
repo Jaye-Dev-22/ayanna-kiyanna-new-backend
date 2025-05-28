@@ -8,16 +8,28 @@ const ClassRequest = require('../models/ClassRequest');
 // Get all student registration requests
 exports.getStudentRegistrations = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, grade } = req.query;
+    const { page = 1, limit = 10, status, grade, search, classId } = req.query;
 
     // Build filter object
     const filter = {};
     if (status) filter.status = status;
     if (grade) filter.selectedGrade = grade;
+    if (classId) filter.enrolledClasses = classId;
+
+    // Add search functionality
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { studentId: { $regex: search, $options: 'i' } }
+      ];
+    }
 
     const students = await Student.find(filter)
       .populate('userId', 'email fullName emailVerified')
       .populate('enrolledClasses', 'type grade date startTime endTime venue category')
+      .populate('adminAction.actionBy', 'fullName email')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -261,6 +273,56 @@ exports.getStudentById = async (req, res) => {
     }
 
     res.json(student);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Change student status (for approved students back to pending, etc.)
+exports.changeStudentStatus = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { studentId } = req.params;
+    const { status, adminNote } = req.body;
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const oldStatus = student.status;
+    student.status = status;
+    student.adminAction = {
+      actionBy: req.user.id,
+      actionDate: new Date(),
+      actionNote: adminNote || `Status changed from ${oldStatus} to ${status}`
+    };
+
+    await student.save();
+
+    // Create notification for student
+    await Notification.createNotification({
+      recipient: student.userId,
+      type: 'status_change',
+      title: 'Registration Status Update',
+      message: `Your registration status has been updated to ${status}.`,
+      data: {
+        studentId: student._id,
+        oldStatus: oldStatus,
+        newStatus: status,
+        adminNote: adminNote
+      }
+    });
+
+    res.json({
+      message: `Student status changed from ${oldStatus} to ${status} successfully`,
+      student
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error', error: err.message });

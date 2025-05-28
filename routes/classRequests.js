@@ -12,7 +12,8 @@ const {
   getStudentClassRequests,
   getAllClassRequests,
   approveClassRequest,
-  rejectClassRequest
+  rejectClassRequest,
+  changeClassRequestStatus
 } = require('../controllers/classRequestController');
 
 // Validation rules
@@ -22,6 +23,16 @@ const classRequestValidation = [
 ];
 
 const adminActionValidation = [
+  check('adminNote').optional().custom((value) => {
+    if (value && value.trim().length > 0 && value.trim().length < 3) {
+      throw new Error('Admin note must be at least 3 characters if provided');
+    }
+    return true;
+  })
+];
+
+const statusChangeValidation = [
+  check('status', 'Status is required').isIn(['Pending', 'Approved', 'Rejected']),
   check('adminNote').optional().custom((value) => {
     if (value && value.trim().length > 0 && value.trim().length < 3) {
       throw new Error('Admin note must be at least 3 characters if provided');
@@ -54,5 +65,10 @@ router.put('/:requestId/approve', [adminAuth, ...adminActionValidation], approve
 // @desc    Reject class request
 // @access  Private (Admin/Moderator)
 router.put('/:requestId/reject', [adminAuth, ...adminActionValidation], rejectClassRequest);
+
+// @route   PUT /api/class-requests/:requestId/change-status
+// @desc    Change class request status
+// @access  Private (Admin/Moderator)
+router.put('/:requestId/change-status', [adminAuth, ...statusChangeValidation], changeClassRequestStatus);
 
 module.exports = router;

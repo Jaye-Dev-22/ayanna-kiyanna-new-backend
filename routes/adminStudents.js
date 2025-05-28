@@ -14,6 +14,7 @@ const {
   approveAllPending,
   getStudentById,
   deleteStudentRegistration,
+  changeStudentStatus,
   removeStudentFromClass,
   changeStudentClass,
   sendMessageToStudent,
@@ -34,6 +35,11 @@ const classChangeValidation = [
 const messageValidation = [
   check('subject', 'Subject is required').not().isEmpty().trim(),
   check('message', 'Message is required').not().isEmpty().trim()
+];
+
+const statusChangeValidation = [
+  check('status', 'Status is required').isIn(['Pending', 'Approved', 'Rejected']),
+  check('adminNote', 'Admin note must be at least 3 characters').optional().isLength({ min: 3 })
 ];
 
 // @route   GET /api/admin/students/available-classes
@@ -75,6 +81,11 @@ router.put('/:studentId/approve', [adminAuth, ...adminActionValidation], approve
 // @desc    Reject student registration
 // @access  Private (Admin/Moderator)
 router.put('/:studentId/reject', [adminAuth, ...adminActionValidation], rejectStudentRegistration);
+
+// @route   PUT /api/admin/students/:studentId/change-status
+// @desc    Change student status (approved to pending, etc.)
+// @access  Private (Admin/Moderator)
+router.put('/:studentId/change-status', [adminAuth, ...statusChangeValidation], changeStudentStatus);
 
 // @route   DELETE /api/admin/students/:studentId
 // @desc    Delete student registration
