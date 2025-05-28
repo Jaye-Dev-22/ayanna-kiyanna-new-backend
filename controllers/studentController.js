@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
 const Student = require('../models/Student');
 const User = require('../models/User');
 const Class = require('../models/Class');
@@ -8,7 +9,6 @@ const Notification = require('../models/Notification');
 exports.registerStudent = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('Validation errors:', errors.array());
     return res.status(400).json({
       message: 'Validation failed',
       errors: errors.array(),
@@ -103,14 +103,11 @@ exports.registerStudent = async (req, res) => {
     user.studentPassword = studentPassword; // This will be hashed by User model pre-save hook
     await user.save();
 
-    // Populate the student data before sending response
-    const populatedStudent = await Student.findById(student._id)
-      .populate('userId', 'email fullName')
-      .populate('enrolledClasses', 'type grade date startTime endTime venue');
-
+    // Send simple success response without population to avoid errors
     res.status(201).json({
       message: 'Student registration submitted successfully. Waiting for admin approval.',
-      student: populatedStudent
+      studentId: student.studentId,
+      status: student.status
     });
   } catch (err) {
     console.error('Error in student registration:', err);
@@ -158,16 +155,20 @@ exports.studentLogin = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check student password using User model
-    const isMatch = await user.compareStudentPassword(studentPassword);
+    // Check student password using bcrypt directly
+    const isMatch = await bcrypt.compare(studentPassword, user.studentPassword);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid student password' });
     }
 
-    // Return student data
+    // Return student data with safe population
     const populatedStudent = await Student.findById(student._id)
       .populate('userId', 'email fullName')
-      .populate('enrolledClasses', 'type grade date startTime endTime venue category platform isActive');
+      .populate({
+        path: 'enrolledClasses',
+        select: 'type grade date startTime endTime venue category platform isActive',
+        match: { isActive: true }
+      });
 
     res.json({
       message: 'Student login successful',
