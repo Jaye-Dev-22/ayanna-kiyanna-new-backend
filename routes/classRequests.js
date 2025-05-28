@@ -13,7 +13,8 @@ const {
   getAllClassRequests,
   approveClassRequest,
   rejectClassRequest,
-  changeClassRequestStatus
+  changeClassRequestStatus,
+  approveAllPendingRequests
 } = require('../controllers/classRequestController');
 
 // Validation rules
@@ -55,6 +56,11 @@ router.get('/my-requests', auth, getStudentClassRequests);
 // @desc    Get all class requests (Admin)
 // @access  Private (Admin/Moderator)
 router.get('/', adminAuth, getAllClassRequests);
+
+// @route   PUT /api/class-requests/approve-all
+// @desc    Approve all pending class requests
+// @access  Private (Admin/Moderator)
+router.put('/approve-all', [adminAuth, ...adminActionValidation], approveAllPendingRequests);
 
 // @route   PUT /api/class-requests/:requestId/approve
 // @desc    Approve class request

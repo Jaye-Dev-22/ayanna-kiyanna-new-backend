@@ -196,32 +196,47 @@ exports.approveClassRequest = async (req, res) => {
 
     await classRequest.save();
 
-    // Add student to class and class to student
-    if (!classRequest.class.enrolledStudents) {
-      classRequest.class.enrolledStudents = [];
-    }
-    classRequest.class.enrolledStudents.push(classRequest.student._id);
+    // Add student to class and class to student (with duplicate prevention)
+    try {
+      // Add student to class (only if not already enrolled)
+      if (!classRequest.class.enrolledStudents) {
+        classRequest.class.enrolledStudents = [];
+      }
+      if (!classRequest.class.enrolledStudents.some(id => id.equals(classRequest.student._id))) {
+        classRequest.class.enrolledStudents.push(classRequest.student._id);
+        await classRequest.class.save();
+      }
 
-    if (!classRequest.student.enrolledClasses) {
-      classRequest.student.enrolledClasses = [];
+      // Add class to student (only if not already enrolled)
+      if (!classRequest.student.enrolledClasses) {
+        classRequest.student.enrolledClasses = [];
+      }
+      if (!classRequest.student.enrolledClasses.some(id => id.equals(classRequest.class._id))) {
+        classRequest.student.enrolledClasses.push(classRequest.class._id);
+        await classRequest.student.save();
+      }
+    } catch (error) {
+      console.error('Error enrolling student in class:', error);
+      return res.status(500).json({ message: 'Error enrolling student in class' });
     }
-    classRequest.student.enrolledClasses.push(classRequest.class._id);
-
-    await classRequest.class.save();
-    await classRequest.student.save();
 
     // Create notification for student
-    await Notification.createNotification({
-      recipient: classRequest.student.userId,
-      type: 'class_request_approved',
-      title: 'Class Enrollment Request Approved! 🎉',
-      message: `Your request to join ${classRequest.class.grade} - ${classRequest.class.category} class has been approved.`,
-      data: {
-        classRequestId: classRequest._id,
-        classId: classRequest.class._id,
-        adminNote: adminNote
-      }
-    });
+    try {
+      await Notification.createNotification({
+        recipient: classRequest.student.userId,
+        type: 'class_request_approved',
+        title: 'New Class Enrollment Request Approved! 🎉',
+        message: `Your request to join ${classRequest.class.grade} - ${classRequest.class.category} class has been approved.`,
+        data: {
+          classRequestId: classRequest._id,
+          classId: classRequest.class._id,
+          adminNote: adminNote
+        }
+      });
+    } catch (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      // Continue even if notification fails
+    }
 
     res.json({
       message: 'Class request approved successfully',
@@ -417,6 +432,123 @@ exports.changeClassRequestStatus = async (req, res) => {
     });
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Approve all pending class requests (Admin)
+exports.approveAllPendingRequests = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.error('Validation errors:', errors.array());
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { adminNote } = req.body;
+
+    // Get all pending class requests
+    const pendingRequests = await ClassRequest.find({ status: 'Pending' })
+      .populate({
+        path: 'student',
+        options: { virtuals: true }
+      })
+      .populate('class');
+
+    if (pendingRequests.length === 0) {
+      return res.status(400).json({ message: 'No pending class requests found' });
+    }
+
+    let approvedCount = 0;
+    let failedCount = 0;
+    const failedRequests = [];
+
+    // Process each pending request
+    for (const classRequest of pendingRequests) {
+      try {
+        // Check class capacity
+        const enrolledCount = classRequest.class.enrolledStudents ? classRequest.class.enrolledStudents.length : 0;
+        if (enrolledCount >= classRequest.class.capacity) {
+          failedCount++;
+          failedRequests.push({
+            studentName: `${classRequest.student.firstName} ${classRequest.student.lastName}`,
+            className: `${classRequest.class.grade} - ${classRequest.class.category}`,
+            reason: 'Class is at full capacity'
+          });
+          continue;
+        }
+
+        // Add student to class (only if not already enrolled)
+        if (!classRequest.class.enrolledStudents) {
+          classRequest.class.enrolledStudents = [];
+        }
+        if (!classRequest.class.enrolledStudents.some(id => id.equals(classRequest.student._id))) {
+          classRequest.class.enrolledStudents.push(classRequest.student._id);
+          await classRequest.class.save();
+        }
+
+        // Add class to student (only if not already enrolled)
+        if (!classRequest.student.enrolledClasses) {
+          classRequest.student.enrolledClasses = [];
+        }
+        if (!classRequest.student.enrolledClasses.some(id => id.equals(classRequest.class._id))) {
+          classRequest.student.enrolledClasses.push(classRequest.class._id);
+          await classRequest.student.save();
+        }
+
+        // Update request status
+        classRequest.status = 'Approved';
+        classRequest.adminResponse = {
+          actionBy: req.user.id,
+          actionDate: new Date(),
+          actionNote: adminNote || 'Bulk approval by administrator'
+        };
+
+        await classRequest.save();
+
+        // Create notification for student
+        try {
+          await Notification.createNotification({
+            recipient: classRequest.student.userId,
+            type: 'class_request_approved',
+            title: 'Class Request Approved',
+            message: `Your class enrollment request for ${classRequest.class.grade} - ${classRequest.class.category} has been approved.`,
+            data: {
+              classRequestId: classRequest._id,
+              classId: classRequest.class._id,
+              adminNote: adminNote
+            }
+          });
+        } catch (notificationError) {
+          console.error('Error creating notification:', notificationError);
+          // Continue even if notification fails
+        }
+
+        approvedCount++;
+      } catch (error) {
+        console.error(`Error approving request for student ${classRequest.student._id}:`, error);
+        failedCount++;
+        failedRequests.push({
+          studentName: `${classRequest.student.firstName} ${classRequest.student.lastName}`,
+          className: `${classRequest.class.grade} - ${classRequest.class.category}`,
+          reason: 'Processing error'
+        });
+      }
+    }
+
+    let message = `Successfully approved ${approvedCount} class requests`;
+    if (failedCount > 0) {
+      message += `. ${failedCount} requests failed to approve.`;
+    }
+
+    res.json({
+      message,
+      approvedCount,
+      failedCount,
+      failedRequests: failedCount > 0 ? failedRequests : undefined
+    });
+  } catch (err) {
+    console.error('Error in approveAllPendingRequests:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
