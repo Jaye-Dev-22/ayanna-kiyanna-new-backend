@@ -8,10 +8,16 @@ const Notification = require('../models/Notification');
 exports.registerStudent = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    console.log('Validation errors:', errors.array());
+    return res.status(400).json({
+      message: 'Validation failed',
+      errors: errors.array(),
+      details: errors.array().map(err => `${err.param}: ${err.msg}`)
+    });
   }
 
   try {
+
     const {
       surname,
       firstName,
@@ -23,6 +29,7 @@ exports.registerStudent = async (req, res) => {
       school,
       gender,
       birthday,
+      age,
       currentStudent,
       profilePicture,
       guardianName,
@@ -46,15 +53,17 @@ exports.registerStudent = async (req, res) => {
       return res.status(400).json({ message: 'You are already registered as a student' });
     }
 
-    // Calculate age from birthday
+    // Calculate age from birthday if not provided
     const birthDate = new Date(birthday);
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
+    let calculatedAge = age || today.getFullYear() - birthDate.getFullYear();
 
-    // Adjust age if birthday hasn't occurred this year
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
+    if (!age) {
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      // Adjust age if birthday hasn't occurred this year
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
+      }
     }
 
     // Generate student ID
@@ -72,7 +81,7 @@ exports.registerStudent = async (req, res) => {
       school,
       gender,
       birthday: birthDate,
-      age,
+      age: calculatedAge,
       currentStudent,
       profilePicture,
       guardianName,

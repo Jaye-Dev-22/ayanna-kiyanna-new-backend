@@ -17,23 +17,32 @@ const {
 
 // Validation rules for student registration
 const studentRegistrationValidation = [
-  check('surname', 'Surname is required').not().isEmpty(),
-  check('firstName', 'First name is required').not().isEmpty(),
-  check('lastName', 'Last name is required').not().isEmpty(),
-  check('contactNumber', 'Contact number is required').not().isEmpty(),
-  check('whatsappNumber', 'WhatsApp number is required').not().isEmpty(),
-  check('email', 'Please include a valid email').isEmail(),
-  check('address', 'Address is required').not().isEmpty(),
-  check('school', 'School is required').not().isEmpty(),
+  check('surname', 'Surname is required').not().isEmpty().trim(),
+  check('firstName', 'First name is required').not().isEmpty().trim(),
+  check('lastName', 'Last name is required').not().isEmpty().trim(),
+  check('contactNumber', 'Contact number is required').not().isEmpty().trim(),
+  check('whatsappNumber', 'WhatsApp number is required').not().isEmpty().trim(),
+  check('email', 'Please include a valid email').isEmail().normalizeEmail(),
+  check('address', 'Address is required').not().isEmpty().trim(),
+  check('school', 'School is required').not().isEmpty().trim(),
   check('gender', 'Gender is required').isIn(['Male', 'Female', 'Other']),
-  check('birthday', 'Birthday is required').isISO8601(),
+  check('birthday', 'Birthday is required').isISO8601().toDate(),
   check('currentStudent', 'Current student status is required').isIn(['Current Student', 'New Student']),
-  check('guardianName', 'Guardian name is required').not().isEmpty(),
+  check('guardianName', 'Guardian name is required').not().isEmpty().trim(),
   check('guardianType', 'Guardian type is required').isIn(['Mother', 'Father', 'Guardian', 'Other']),
-  check('guardianContact', 'Guardian contact is required').not().isEmpty(),
-  check('selectedGrade', 'Selected grade is required').not().isEmpty(),
+  check('guardianContact', 'Guardian contact is required').not().isEmpty().trim(),
+  check('selectedGrade', 'Selected grade is required').not().isEmpty().trim(),
   check('studentPassword', 'Student password must be at least 6 characters').isLength({ min: 6 }),
-  check('agreedToTerms', 'You must agree to terms and conditions').isBoolean().equals(true)
+  check('agreedToTerms', 'You must agree to terms and conditions').custom((value) => {
+    if (value === true || value === 'true') {
+      return true;
+    }
+    throw new Error('You must agree to terms and conditions');
+  }),
+  // Optional fields
+  check('profilePicture').optional().isURL(),
+  check('enrolledClasses').optional().isArray(),
+  check('age').optional().isInt({ min: 1, max: 100 })
 ];
 
 // Validation rules for student login
