@@ -67,7 +67,7 @@ const StudentSchema = new mongoose.Schema({
     type: String, // Cloudinary URL
     trim: true
   },
-  
+
   // Guardian Information
   guardianName: {
     type: String,
@@ -84,18 +84,21 @@ const StudentSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  
+
   // Academic Information
   selectedGrade: {
     type: String,
     required: true,
     trim: true
   },
-  enrolledClasses: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Class'
-  }],
-  
+  enrolledClasses: {
+    type: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Class'
+    }],
+    default: []
+  },
+
   // Student Credentials
   studentId: {
     type: String,
@@ -108,28 +111,28 @@ const StudentSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  
+
   // Registration Status
   status: {
     type: String,
     enum: ['Pending', 'Approved', 'Rejected'],
     default: 'Pending'
   },
-  
+
   // User Reference
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  
+
   // Terms Agreement
   agreedToTerms: {
     type: Boolean,
     required: true,
     default: false
   },
-  
+
   // Timestamps
   createdAt: {
     type: Date,
@@ -139,7 +142,7 @@ const StudentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  
+
   // Admin Action
   adminAction: {
     actionBy: {
@@ -185,21 +188,21 @@ StudentSchema.statics.generateStudentId = async function(grade) {
   try {
     // Get first 2 characters of grade
     const gradePrefix = grade.substring(0, 2).toUpperCase();
-    
+
     // Find the highest existing student ID for this grade
     const lastStudent = await this.findOne({
       studentId: { $regex: `^AKG${gradePrefix}` }
     }).sort({ studentId: -1 });
-    
+
     let nextNumber = 1;
     if (lastStudent) {
       const lastNumber = parseInt(lastStudent.studentId.substring(5)); // Remove 'AKG' + 2 grade chars
       nextNumber = lastNumber + 1;
     }
-    
+
     // Format as 4-digit number
     const formattedNumber = nextNumber.toString().padStart(4, '0');
-    
+
     return `AKG${gradePrefix}${formattedNumber}`;
   } catch (error) {
     throw new Error('Error generating student ID');

@@ -80,10 +80,13 @@ const ClassSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  enrolledStudents: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Student'
-  }],
+  enrolledStudents: {
+    type: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Student'
+    }],
+    default: []
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -102,12 +105,13 @@ ClassSchema.pre('save', function(next) {
 
 // Virtual for enrolled count
 ClassSchema.virtual('enrolledCount').get(function() {
-  return this.enrolledStudents.length;
+  return this.enrolledStudents ? this.enrolledStudents.length : 0;
 });
 
 // Virtual for available spots
 ClassSchema.virtual('availableSpots').get(function() {
-  return this.capacity - this.enrolledStudents.length;
+  const enrolledCount = this.enrolledStudents ? this.enrolledStudents.length : 0;
+  return this.capacity - enrolledCount;
 });
 
 // Ensure virtuals are included in JSON output
