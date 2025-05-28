@@ -131,7 +131,7 @@ exports.register = async (req, res) => {
     };
 
     // Generate token
-    const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '1h' });
+    const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '24h' });
 
     res.status(201).json({
       token,
@@ -174,7 +174,7 @@ exports.login = async (req, res) => {
     };
 
     // Generate token
-    const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '1h' });
+    const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '24h' });
 
     // Return token AND user data
     res.json({
@@ -233,7 +233,7 @@ exports.firebaseGoogleAuth = async (req, res) => {
       }
     };
 
-    const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '1h' });
+    const token = jwt.sign(payload, config.get('jwtSecret'), { expiresIn: '24h' });
 
     res.json({
       token,
