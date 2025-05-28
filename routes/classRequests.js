@@ -22,7 +22,12 @@ const classRequestValidation = [
 ];
 
 const adminActionValidation = [
-  check('adminNote', 'Admin note must be at least 3 characters').optional().isLength({ min: 3 })
+  check('adminNote').optional().custom((value) => {
+    if (value && value.trim().length > 0 && value.trim().length < 3) {
+      throw new Error('Admin note must be at least 3 characters if provided');
+    }
+    return true;
+  })
 ];
 
 // @route   POST /api/class-requests

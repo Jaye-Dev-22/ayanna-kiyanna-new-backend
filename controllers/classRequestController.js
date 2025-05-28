@@ -109,7 +109,11 @@ exports.getAllClassRequests = async (req, res) => {
     if (status) filter.status = status;
 
     let requests = await ClassRequest.find(filter)
-      .populate('student', 'studentId fullName selectedGrade')
+      .populate({
+        path: 'student',
+        select: 'studentId firstName lastName selectedGrade email',
+        options: { virtuals: true }
+      })
       .populate('class', 'type grade date startTime endTime venue category')
       .populate('adminResponse.actionBy', 'fullName email')
       .sort({ createdAt: -1 })
@@ -147,7 +151,10 @@ exports.approveClassRequest = async (req, res) => {
     const { adminNote } = req.body;
 
     const classRequest = await ClassRequest.findById(requestId)
-      .populate('student')
+      .populate({
+        path: 'student',
+        options: { virtuals: true }
+      })
       .populate('class');
 
     if (!classRequest) {
@@ -223,7 +230,10 @@ exports.rejectClassRequest = async (req, res) => {
     const { adminNote } = req.body;
 
     const classRequest = await ClassRequest.findById(requestId)
-      .populate('student')
+      .populate({
+        path: 'student',
+        options: { virtuals: true }
+      })
       .populate('class');
 
     if (!classRequest) {
