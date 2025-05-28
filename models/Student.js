@@ -186,25 +186,60 @@ StudentSchema.methods.compareStudentPassword = async function(candidatePassword)
 // Static method to generate student ID
 StudentSchema.statics.generateStudentId = async function(grade) {
   try {
-    // Get first 2 characters of grade
-    const gradePrefix = grade.substring(0, 2).toUpperCase();
+    // Extract grade prefix based on new logic
+    let gradePrefix = '';
 
-    // Find the highest existing student ID for this grade
+    // Check if grade contains numbers
+    const numbers = grade.match(/\d/g);
+    if (numbers && numbers.length >= 2) {
+      // Use first 2 numbers if available
+      gradePrefix = numbers.slice(0, 2).join('');
+    } else if (numbers && numbers.length === 1) {
+      // If only one number, use it and first letter
+      const letters = grade.match(/[A-Za-z]/g);
+      if (letters && letters.length > 0) {
+        gradePrefix = numbers[0] + letters[0].toUpperCase();
+      } else {
+        gradePrefix = numbers[0] + '0'; // fallback
+      }
+    } else {
+      // No numbers found, use first 2 letters
+      const letters = grade.match(/[A-Za-z]/g);
+      if (letters && letters.length >= 2) {
+        gradePrefix = letters.slice(0, 2).join('').toUpperCase();
+      } else if (letters && letters.length === 1) {
+        gradePrefix = letters[0].toUpperCase() + 'X'; // fallback
+      } else {
+        gradePrefix = 'XX'; // fallback for edge cases
+      }
+    }
+
+    // Get current year's last 2 digits
+    const currentYear = new Date().getFullYear();
+    const yearSuffix = currentYear.toString().slice(-2);
+
+    // Find the highest existing student ID for this grade and year
+    const searchPattern = `^AKG${gradePrefix}\\d{4}Y${yearSuffix}$`;
     const lastStudent = await this.findOne({
-      studentId: { $regex: `^AKG${gradePrefix}` }
+      studentId: { $regex: searchPattern }
     }).sort({ studentId: -1 });
 
     let nextNumber = 1;
     if (lastStudent) {
-      const lastNumber = parseInt(lastStudent.studentId.substring(5)); // Remove 'AKG' + 2 grade chars
-      nextNumber = lastNumber + 1;
+      // Extract the 4-digit number from the student ID
+      // Format: AKG + gradePrefix + 0001 + Y + yearSuffix
+      const idParts = lastStudent.studentId;
+      const numberPart = idParts.substring(3 + gradePrefix.length, 3 + gradePrefix.length + 4);
+      nextNumber = parseInt(numberPart) + 1;
     }
 
     // Format as 4-digit number
     const formattedNumber = nextNumber.toString().padStart(4, '0');
 
-    return `AKG${gradePrefix}${formattedNumber}`;
+    // Final format: AKG + gradePrefix + 0001 + Y + yearSuffix
+    return `AKG${gradePrefix}${formattedNumber}Y${yearSuffix}`;
   } catch (error) {
+    console.error('Error generating student ID:', error);
     throw new Error('Error generating student ID');
   }
 };
