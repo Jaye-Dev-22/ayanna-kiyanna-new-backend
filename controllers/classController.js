@@ -351,3 +351,122 @@ exports.removeStudent = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// Clean and reset available spots - Data integrity check
+exports.cleanAndResetAvailableSpots = async (req, res) => {
+  try {
+    console.log('Starting Clean and Reset Available Spots process...');
+
+    const Student = require('../models/Student');
+    let totalClassesProcessed = 0;
+    let totalStudentsRemoved = 0;
+    let totalDeletedStudentsRemoved = 0;
+    const cleanupReport = [];
+
+    // Get all classes
+    const allClasses = await Class.find({});
+    console.log(`Found ${allClasses.length} classes to process`);
+
+    for (const classItem of allClasses) {
+      let classModified = false;
+      const originalEnrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
+      const studentsToRemove = [];
+
+      if (classItem.enrolledStudents && classItem.enrolledStudents.length > 0) {
+        // Check each enrolled student
+        for (const studentId of classItem.enrolledStudents) {
+          try {
+            // Check if student exists
+            const student = await Student.findById(studentId);
+
+            if (!student) {
+              // Student doesn't exist (deleted) - remove from class
+              studentsToRemove.push(studentId);
+              totalDeletedStudentsRemoved++;
+              console.log(`Deleted student ${studentId} will be removed from class ${classItem.grade} - ${classItem.category}`);
+            } else {
+              // Student exists - check if class is in their enrolledClasses
+              const isEnrolledInStudent = student.enrolledClasses &&
+                student.enrolledClasses.some(classId => classId.equals(classItem._id));
+
+              if (!isEnrolledInStudent) {
+                // Student exists but class not in their enrolledClasses - remove from class
+                studentsToRemove.push(studentId);
+                totalStudentsRemoved++;
+                console.log(`Student ${student.firstName} ${student.lastName} (${student.studentId}) will be removed from class ${classItem.grade} - ${classItem.category} - not in student's enrolledClasses`);
+              }
+            }
+          } catch (error) {
+            // Error finding student (likely deleted) - remove from class
+            studentsToRemove.push(studentId);
+            totalDeletedStudentsRemoved++;
+            console.log(`Error finding student ${studentId}, will be removed from class ${classItem.grade} - ${classItem.category}`);
+          }
+        }
+
+        // Remove identified students from class
+        if (studentsToRemove.length > 0) {
+          classItem.enrolledStudents = classItem.enrolledStudents.filter(
+            studentId => !studentsToRemove.some(removeId => removeId.equals ? removeId.equals(studentId) : removeId.toString() === studentId.toString())
+          );
+          classModified = true;
+        }
+      }
+
+      // Save class if modified
+      if (classModified) {
+        await classItem.save();
+        const newEnrolledCount = classItem.enrolledStudents.length;
+        const newAvailableSpots = classItem.capacity - newEnrolledCount;
+
+        cleanupReport.push({
+          classId: classItem._id,
+          className: `${classItem.grade} - ${classItem.category}`,
+          originalEnrolledCount,
+          newEnrolledCount,
+          studentsRemoved: studentsToRemove.length,
+          newAvailableSpots
+        });
+
+        console.log(`Updated class ${classItem.grade} - ${classItem.category}: ${originalEnrolledCount} → ${newEnrolledCount} students`);
+      }
+
+      totalClassesProcessed++;
+    }
+
+    const summary = {
+      totalClassesProcessed,
+      totalStudentsRemoved,
+      totalDeletedStudentsRemoved,
+      classesModified: cleanupReport.length,
+      cleanupReport,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('Clean and Reset Available Spots completed:', summary);
+
+    if (res) {
+      // If called via API endpoint
+      res.json({
+        success: true,
+        message: 'Available spots cleaned and reset successfully',
+        summary
+      });
+    } else {
+      // If called internally
+      return summary;
+    }
+
+  } catch (error) {
+    console.error('Error in cleanAndResetAvailableSpots:', error);
+    if (res) {
+      res.status(500).json({
+        success: false,
+        message: 'Error cleaning available spots',
+        error: error.message
+      });
+    } else {
+      throw error;
+    }
+  }
+};

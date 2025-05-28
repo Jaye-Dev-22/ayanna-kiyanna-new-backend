@@ -16,7 +16,8 @@ const {
   getAvailableGrades,
   getAvailableVenues,
   enrollStudent,
-  removeStudent
+  removeStudent,
+  cleanAndResetAvailableSpots
 } = require('../controllers/classController');
 
 // Validation rules for class creation/update
@@ -106,5 +107,10 @@ router.post('/:id/remove-student', [
   adminAuth,
   check('studentId', 'Student ID is required').not().isEmpty()
 ], removeStudent);
+
+// @route   POST /api/classes/clean-and-reset-spots
+// @desc    Clean and reset available spots - Data integrity check
+// @access  Private (Admin/Moderator)
+router.post('/clean-and-reset-spots', adminAuth, cleanAndResetAvailableSpots);
 
 module.exports = router;

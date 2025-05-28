@@ -124,5 +124,9 @@ connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
+
+    // Initialize scheduled cleanup tasks
+    const { scheduleCleanupTasks } = require('./utils/scheduler');
+    scheduleCleanupTasks();
   });
 });

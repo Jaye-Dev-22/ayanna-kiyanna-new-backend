@@ -388,6 +388,16 @@ exports.deleteStudentRegistration = async (req, res) => {
     // Delete student record (notification will remain for user to see)
     await Student.findByIdAndDelete(studentId);
 
+    // Auto-trigger cleanup of available spots
+    try {
+      const { cleanAndResetAvailableSpots } = require('./classController');
+      await cleanAndResetAvailableSpots();
+      console.log('Auto-cleanup triggered after student deletion');
+    } catch (cleanupError) {
+      console.error('Error in auto-cleanup after student deletion:', cleanupError);
+      // Don't fail the deletion if cleanup fails
+    }
+
     res.json({
       message: 'Student registration deleted successfully'
     });
@@ -424,6 +434,16 @@ exports.removeStudentFromClass = async (req, res) => {
 
     await student.save();
     await classItem.save();
+
+    // Auto-trigger cleanup of available spots
+    try {
+      const { cleanAndResetAvailableSpots } = require('./classController');
+      await cleanAndResetAvailableSpots();
+      console.log('Auto-cleanup triggered after removing student from class');
+    } catch (cleanupError) {
+      console.error('Error in auto-cleanup after removing student from class:', cleanupError);
+      // Don't fail the operation if cleanup fails
+    }
 
     res.json({
       message: 'Student removed from class successfully'
@@ -508,6 +528,16 @@ exports.changeStudentClass = async (req, res) => {
         adminNote: 'Class changed by administrator'
       }
     });
+
+    // Auto-trigger cleanup of available spots
+    try {
+      const { cleanAndResetAvailableSpots } = require('./classController');
+      await cleanAndResetAvailableSpots();
+      console.log('Auto-cleanup triggered after changing student class');
+    } catch (cleanupError) {
+      console.error('Error in auto-cleanup after changing student class:', cleanupError);
+      // Don't fail the operation if cleanup fails
+    }
 
     res.json({
       message: 'Student class changed successfully'
