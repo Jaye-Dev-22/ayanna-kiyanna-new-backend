@@ -188,7 +188,8 @@ exports.studentLogin = async (req, res) => {
       student: populatedStudent
     });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in studentLogin:', err.message);
+    console.error('Stack trace:', err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -215,15 +216,20 @@ exports.getAvailableClasses = async (req, res) => {
     }
 
     const classes = await Class.find(filter)
-      .populate('createdBy', 'fullName email')
+      .populate({
+        path: 'createdBy',
+        select: 'fullName email',
+        options: { strictPopulate: false }
+      })
       .sort({ grade: 1, date: 1, startTime: 1 });
 
     res.json({
-      classes,
-      total: classes.length
+      classes: classes || [],
+      total: classes ? classes.length : 0
     });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in getAvailableClasses:', err.message);
+    console.error('Stack trace:', err.stack);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
