@@ -223,9 +223,19 @@ exports.getAvailableClasses = async (req, res) => {
       })
       .sort({ grade: 1, date: 1, startTime: 1 });
 
+    // Add available spots calculation to each class
+    const classesWithSpots = classes.map(classItem => {
+      const enrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
+      return {
+        ...classItem.toObject(),
+        enrolledCount,
+        availableSpots: classItem.capacity - enrolledCount
+      };
+    });
+
     res.json({
-      classes: classes || [],
-      total: classes ? classes.length : 0
+      classes: classesWithSpots || [],
+      total: classesWithSpots ? classesWithSpots.length : 0
     });
   } catch (err) {
     console.error('Error in getAvailableClasses:', err.message);

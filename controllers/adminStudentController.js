@@ -481,6 +481,18 @@ exports.changeStudentClass = async (req, res) => {
     }
     newClass.enrolledStudents.push(studentId);
 
+    // Update student's grade to match new class grade (exclude literature-related subjects)
+    const newClassGrade = newClass.grade;
+    const currentGrade = student.selectedGrade;
+    const isLiteratureRelated = /lit|literature|litre/i.test(newClassGrade);
+
+    if (!isLiteratureRelated) {
+      student.selectedGrade = newClassGrade;
+      console.log(`Updated student grade from ${currentGrade} to ${newClassGrade}`);
+    } else {
+      console.log(`Skipped grade update for literature-related class: ${newClassGrade}`);
+    }
+
     await student.save();
     await oldClass.save();
     await newClass.save();

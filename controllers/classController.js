@@ -22,8 +22,18 @@ exports.getAllClasses = async (req, res) => {
 
     const total = await Class.countDocuments(filter);
 
+    // Add available spots calculation to each class
+    const classesWithSpots = classes.map(classItem => {
+      const enrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
+      return {
+        ...classItem.toObject(),
+        enrolledCount,
+        availableSpots: classItem.capacity - enrolledCount
+      };
+    });
+
     res.json({
-      classes,
+      classes: classesWithSpots,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
       total
