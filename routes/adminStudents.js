@@ -36,6 +36,21 @@ const messageValidation = [
   check('message', 'Message is required').not().isEmpty().trim()
 ];
 
+// @route   GET /api/admin/students/available-classes
+// @desc    Get available classes for assignment
+// @access  Private (Admin/Moderator)
+router.get('/available-classes', adminAuth, getAvailableClassesForAssignment);
+
+// @route   GET /api/admin/students/available-grades
+// @desc    Get available grades for filtering
+// @access  Private (Admin/Moderator)
+router.get('/available-grades', adminAuth, getAvailableGrades);
+
+// @route   PUT /api/admin/students/approve-all
+// @desc    Approve all pending registrations
+// @access  Private (Admin/Moderator)
+router.put('/approve-all', [adminAuth, ...adminActionValidation], approveAllPending);
+
 // @route   GET /api/admin/students
 // @desc    Get all student registrations
 // @access  Private (Admin/Moderator)
@@ -61,11 +76,6 @@ router.put('/:studentId/approve', [adminAuth, ...adminActionValidation], approve
 // @access  Private (Admin/Moderator)
 router.put('/:studentId/reject', [adminAuth, ...adminActionValidation], rejectStudentRegistration);
 
-// @route   PUT /api/admin/students/approve-all
-// @desc    Approve all pending registrations
-// @access  Private (Admin/Moderator)
-router.put('/approve-all', [adminAuth, ...adminActionValidation], approveAllPending);
-
 // @route   DELETE /api/admin/students/:studentId
 // @desc    Delete student registration
 // @access  Private (Admin/Moderator)
@@ -85,15 +95,5 @@ router.put('/:studentId/change-class', [adminAuth, ...classChangeValidation], ch
 // @desc    Send message to student
 // @access  Private (Admin/Moderator)
 router.post('/:studentId/message', [adminAuth, ...messageValidation], sendMessageToStudent);
-
-// @route   GET /api/admin/students/available-classes
-// @desc    Get available classes for assignment
-// @access  Private (Admin/Moderator)
-router.get('/available-classes', adminAuth, getAvailableClassesForAssignment);
-
-// @route   GET /api/admin/students/available-grades
-// @desc    Get available grades for filtering
-// @access  Private (Admin/Moderator)
-router.get('/available-grades', adminAuth, getAvailableGrades);
 
 module.exports = router;
