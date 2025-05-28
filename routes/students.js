@@ -33,7 +33,7 @@ const studentRegistrationValidation = [
   check('guardianContact', 'Guardian contact is required').not().isEmpty(),
   check('selectedGrade', 'Selected grade is required').not().isEmpty(),
   check('studentPassword', 'Student password must be at least 6 characters').isLength({ min: 6 }),
-  check('agreedToTerms', 'You must agree to terms and conditions').equals('true')
+  check('agreedToTerms', 'You must agree to terms and conditions').isBoolean().equals(true)
 ];
 
 // Validation rules for student login

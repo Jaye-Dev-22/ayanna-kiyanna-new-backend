@@ -3,7 +3,6 @@ const Student = require('../models/Student');
 const User = require('../models/User');
 const Class = require('../models/Class');
 const Notification = require('../models/Notification');
-const bcrypt = require('bcryptjs');
 
 // Register new student
 exports.registerStudent = async (req, res) => {
@@ -50,12 +49,18 @@ exports.registerStudent = async (req, res) => {
     // Calculate age from birthday
     const birthDate = new Date(birthday);
     const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    // Adjust age if birthday hasn't occurred this year
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
 
     // Generate student ID
     const studentId = await Student.generateStudentId(selectedGrade);
 
-    // Create new student
+    // Create new student first
     const student = new Student({
       surname,
       firstName,
@@ -76,7 +81,7 @@ exports.registerStudent = async (req, res) => {
       selectedGrade,
       enrolledClasses: enrolledClasses || [],
       studentId,
-      studentPassword,
+      studentPassword, // This will be hashed by the Student model pre-save hook
       userId: req.user.id,
       agreedToTerms,
       status: 'Pending'
@@ -84,9 +89,9 @@ exports.registerStudent = async (req, res) => {
 
     await student.save();
 
-    // Update user role to student
+    // Update user role to student (store plain password in User model too)
     user.role = 'student';
-    user.studentPassword = studentPassword;
+    user.studentPassword = studentPassword; // This will be hashed by User model pre-save hook
     await user.save();
 
     // Populate the student data before sending response
@@ -99,7 +104,7 @@ exports.registerStudent = async (req, res) => {
       student: populatedStudent
     });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in student registration:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -138,8 +143,14 @@ exports.studentLogin = async (req, res) => {
       return res.status(404).json({ message: 'Student profile not found' });
     }
 
-    // Check student password
-    const isMatch = await student.compareStudentPassword(studentPassword);
+    // Find user to check password
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check student password using User model
+    const isMatch = await user.compareStudentPassword(studentPassword);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid student password' });
     }
@@ -265,7 +276,7 @@ exports.requestClassEnrollment = async (req, res) => {
 };
 
 // Get all grades for filter
-exports.getAllGrades = async (req, res) => {
+exports.getAllGrades = async (_req, res) => {
   try {
     const grades = await Class.distinct('grade', { type: 'Normal', isActive: true });
     res.json({ grades: grades.sort() });
