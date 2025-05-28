@@ -126,6 +126,13 @@ exports.getStudentProfile = async (req, res) => {
       return res.status(404).json({ message: 'Student profile not found' });
     }
 
+    // Filter out null/undefined classes and inactive classes
+    if (student.enrolledClasses) {
+      student.enrolledClasses = student.enrolledClasses.filter(
+        classItem => classItem && classItem.isActive !== false
+      );
+    }
+
     res.json(student);
   } catch (err) {
     console.error(err.message);
@@ -166,9 +173,15 @@ exports.studentLogin = async (req, res) => {
       .populate('userId', 'email fullName')
       .populate({
         path: 'enrolledClasses',
-        select: 'type grade date startTime endTime venue category platform isActive',
-        match: { isActive: true }
+        select: 'type grade date startTime endTime venue category platform isActive'
       });
+
+    // Filter out null/undefined classes and inactive classes
+    if (populatedStudent.enrolledClasses) {
+      populatedStudent.enrolledClasses = populatedStudent.enrolledClasses.filter(
+        classItem => classItem && classItem.isActive !== false
+      );
+    }
 
     res.json({
       message: 'Student login successful',
@@ -197,7 +210,7 @@ exports.getAvailableClasses = async (req, res) => {
 
     // Get student's enrolled classes to exclude them
     const student = await Student.findOne({ userId: req.user.id });
-    if (student && student.enrolledClasses.length > 0) {
+    if (student && student.enrolledClasses && student.enrolledClasses.length > 0) {
       filter._id = { $nin: student.enrolledClasses };
     }
 
@@ -248,17 +261,27 @@ exports.requestClassEnrollment = async (req, res) => {
     }
 
     // Check if already enrolled
-    if (student.enrolledClasses.includes(classId)) {
+    if (student.enrolledClasses && student.enrolledClasses.includes(classId)) {
       return res.status(400).json({ message: 'Already enrolled in this class' });
     }
 
     // Check class capacity
-    if (classItem.enrolledStudents.length >= classItem.capacity) {
+    const enrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
+    if (enrolledCount >= classItem.capacity) {
       return res.status(400).json({ message: 'Class is full' });
     }
 
     // Add student to class and class to student
+    // Initialize enrolledStudents array if it doesn't exist
+    if (!classItem.enrolledStudents) {
+      classItem.enrolledStudents = [];
+    }
     classItem.enrolledStudents.push(student._id);
+
+    // Initialize enrolledClasses array if it doesn't exist
+    if (!student.enrolledClasses) {
+      student.enrolledClasses = [];
+    }
     student.enrolledClasses.push(classId);
 
     await classItem.save();
