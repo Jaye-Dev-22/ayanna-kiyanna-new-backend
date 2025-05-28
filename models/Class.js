@@ -82,7 +82,7 @@ const ClassSchema = new mongoose.Schema({
   },
   enrolledStudents: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'Student'
   }],
   createdAt: {
     type: Date,

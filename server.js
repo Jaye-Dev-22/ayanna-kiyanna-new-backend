@@ -80,6 +80,9 @@ app.get('/', (req, res) => {
 // Routes
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');
+const studentRoutes = require('./routes/students');
+const adminStudentRoutes = require('./routes/adminStudents');
+const notificationRoutes = require('./routes/notifications');
 
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
@@ -88,6 +91,18 @@ app.use('/api/auth', authRoutes);
 // Add specific CORS handling for class routes
 app.options('/api/classes/*', cors(corsOptions));
 app.use('/api/classes', classRoutes);
+
+// Add specific CORS handling for student routes
+app.options('/api/students/*', cors(corsOptions));
+app.use('/api/students', studentRoutes);
+
+// Add specific CORS handling for admin student routes
+app.options('/api/admin/students/*', cors(corsOptions));
+app.use('/api/admin/students', adminStudentRoutes);
+
+// Add specific CORS handling for notification routes
+app.options('/api/notifications/*', cors(corsOptions));
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

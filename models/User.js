@@ -22,8 +22,12 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'Student', 'Teacher', 'moderator'],
+    enum: ['user', 'admin', 'student', 'Teacher', 'moderator'],
     default: 'user'
+  },
+  studentPassword: {
+    type: String,
+    minlength: 6
   },
   emailVerified: {
     type: Boolean,
