@@ -27,6 +27,11 @@ const adminActionValidation = [
   check('adminNote', 'Admin note must be at least 3 characters').optional().isLength({ min: 3 })
 ];
 
+// Validation rules for admin actions (allow empty admin note)
+const adminActionValidationOptional = [
+  check('adminNote').optional().isLength({ min: 0 })
+];
+
 const classChangeValidation = [
   check('oldClassId', 'Old class ID is required').not().isEmpty(),
   check('newClassId', 'New class ID is required').not().isEmpty()
@@ -80,12 +85,12 @@ router.get('/:studentId', adminAuth, getStudentById);
 // @route   PUT /api/admin/students/:studentId/approve
 // @desc    Approve student registration
 // @access  Private (Admin/Moderator)
-router.put('/:studentId/approve', [adminAuth, ...adminActionValidation], approveStudentRegistration);
+router.put('/:studentId/approve', [adminAuth, ...adminActionValidationOptional], approveStudentRegistration);
 
 // @route   PUT /api/admin/students/:studentId/reject
 // @desc    Reject student registration
 // @access  Private (Admin/Moderator)
-router.put('/:studentId/reject', [adminAuth, ...adminActionValidation], rejectStudentRegistration);
+router.put('/:studentId/reject', [adminAuth, ...adminActionValidationOptional], rejectStudentRegistration);
 
 // @route   PUT /api/admin/students/:studentId/change-status
 // @desc    Change student status (approved to pending, etc.)

@@ -457,9 +457,12 @@ exports.changeStudentClass = async (req, res) => {
       return res.status(404).json({ message: 'Class not found' });
     }
 
-    // Check if new class has capacity
+    // Check if new class has capacity (account for the student being moved)
     const enrolledCount = newClass.enrolledStudents ? newClass.enrolledStudents.length : 0;
-    if (enrolledCount >= newClass.capacity) {
+    const isStudentAlreadyInNewClass = newClass.enrolledStudents && newClass.enrolledStudents.some(id => id.equals(studentId));
+
+    // If student is not already in the new class, check if there's space for one more
+    if (!isStudentAlreadyInNewClass && enrolledCount >= newClass.capacity) {
       return res.status(400).json({ message: 'New class is at full capacity' });
     }
 

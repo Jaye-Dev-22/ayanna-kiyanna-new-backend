@@ -14,7 +14,8 @@ const {
   approveClassRequest,
   rejectClassRequest,
   changeClassRequestStatus,
-  approveAllPendingRequests
+  approveAllPendingRequests,
+  deleteClassRequest
 } = require('../controllers/classRequestController');
 
 // Validation rules
@@ -76,5 +77,10 @@ router.put('/:requestId/reject', [adminAuth, ...adminActionValidation], rejectCl
 // @desc    Change class request status
 // @access  Private (Admin/Moderator)
 router.put('/:requestId/change-status', [adminAuth, ...statusChangeValidation], changeClassRequestStatus);
+
+// @route   DELETE /api/class-requests/:requestId
+// @desc    Delete class request (Student can delete their own pending requests)
+// @access  Private (Student)
+router.delete('/:requestId', auth, deleteClassRequest);
 
 module.exports = router;

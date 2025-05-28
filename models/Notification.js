@@ -72,11 +72,32 @@ NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 // Static method to create notification
 NotificationSchema.statics.createNotification = async function(notificationData) {
   try {
+    // Validate required fields
+    if (!notificationData.recipient) {
+      console.error('Notification creation failed: Missing recipient');
+      throw new Error('Recipient is required for notification');
+    }
+
+    if (!notificationData.title || !notificationData.message) {
+      console.error('Notification creation failed: Missing title or message');
+      throw new Error('Title and message are required for notification');
+    }
+
+    // Ensure recipient is a valid ObjectId
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(notificationData.recipient)) {
+      console.error('Notification creation failed: Invalid recipient ID', notificationData.recipient);
+      throw new Error('Invalid recipient ID');
+    }
+
     const notification = new this(notificationData);
     await notification.save();
+    console.log('Notification created successfully for recipient:', notificationData.recipient);
     return notification;
   } catch (error) {
-    throw new Error('Error creating notification');
+    console.error('Error creating notification:', error.message);
+    console.error('Notification data:', notificationData);
+    throw new Error(`Error creating notification: ${error.message}`);
   }
 };
 

@@ -180,9 +180,13 @@ exports.approveClassRequest = async (req, res) => {
       return res.status(400).json({ message: 'Class request is not pending' });
     }
 
-    // Check class capacity
+    // Check class capacity (account for the student being added)
     const enrolledCount = classRequest.class.enrolledStudents ? classRequest.class.enrolledStudents.length : 0;
-    if (enrolledCount >= classRequest.class.capacity) {
+    const isStudentAlreadyEnrolled = classRequest.class.enrolledStudents &&
+      classRequest.class.enrolledStudents.some(id => id.equals(classRequest.student._id));
+
+    // If student is not already enrolled, check if there's space for one more
+    if (!isStudentAlreadyEnrolled && enrolledCount >= classRequest.class.capacity) {
       return res.status(400).json({ message: 'Class is at full capacity' });
     }
 
@@ -367,9 +371,13 @@ exports.changeClassRequestStatus = async (req, res) => {
     // If changing from rejected/pending to approved, add student to class
     if (oldStatus !== 'Approved' && status === 'Approved') {
       try {
-        // Check class capacity
+        // Check class capacity (account for the student being added)
         const enrolledCount = classRequest.class.enrolledStudents ? classRequest.class.enrolledStudents.length : 0;
-        if (enrolledCount >= classRequest.class.capacity) {
+        const isStudentAlreadyEnrolled = classRequest.class.enrolledStudents &&
+          classRequest.class.enrolledStudents.some(id => id.equals(classRequest.student._id));
+
+        // If student is not already enrolled, check if there's space for one more
+        if (!isStudentAlreadyEnrolled && enrolledCount >= classRequest.class.capacity) {
           return res.status(400).json({ message: 'Class is at full capacity' });
         }
 
@@ -466,9 +474,13 @@ exports.approveAllPendingRequests = async (req, res) => {
     // Process each pending request
     for (const classRequest of pendingRequests) {
       try {
-        // Check class capacity
+        // Check class capacity (account for the student being added)
         const enrolledCount = classRequest.class.enrolledStudents ? classRequest.class.enrolledStudents.length : 0;
-        if (enrolledCount >= classRequest.class.capacity) {
+        const isStudentAlreadyEnrolled = classRequest.class.enrolledStudents &&
+          classRequest.class.enrolledStudents.some(id => id.equals(classRequest.student._id));
+
+        // If student is not already enrolled, check if there's space for one more
+        if (!isStudentAlreadyEnrolled && enrolledCount >= classRequest.class.capacity) {
           failedCount++;
           failedRequests.push({
             studentName: `${classRequest.student.firstName} ${classRequest.student.lastName}`,
@@ -549,6 +561,47 @@ exports.approveAllPendingRequests = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in approveAllPendingRequests:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Delete class request (Student)
+exports.deleteClassRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    // Find student
+    const student = await Student.findOne({ userId: req.user.id });
+    if (!student) {
+      return res.status(404).json({ message: 'Student profile not found' });
+    }
+
+    // Find the class request
+    const classRequest = await ClassRequest.findById(requestId)
+      .populate('class', 'grade category');
+
+    if (!classRequest) {
+      return res.status(404).json({ message: 'Class request not found' });
+    }
+
+    // Check if the request belongs to the student
+    if (!classRequest.student.equals(student._id)) {
+      return res.status(403).json({ message: 'You can only delete your own class requests' });
+    }
+
+    // Only allow deletion of pending requests
+    if (classRequest.status !== 'Pending') {
+      return res.status(400).json({ message: 'You can only delete pending class requests' });
+    }
+
+    // Delete the request
+    await ClassRequest.findByIdAndDelete(requestId);
+
+    res.json({
+      message: 'Class request deleted successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
