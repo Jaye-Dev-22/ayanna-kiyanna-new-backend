@@ -283,12 +283,15 @@ exports.getStudentById = async (req, res) => {
 exports.changeStudentStatus = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.error('Validation errors:', errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const { studentId } = req.params;
     const { status, adminNote } = req.body;
+
+    console.log('Changing student status:', { studentId, status, adminNote });
 
     const student = await Student.findById(studentId);
     if (!student) {
@@ -306,25 +309,30 @@ exports.changeStudentStatus = async (req, res) => {
     await student.save();
 
     // Create notification for student
-    await Notification.createNotification({
-      recipient: student.userId,
-      type: 'status_change',
-      title: 'Registration Status Update',
-      message: `Your registration status has been updated to ${status}.`,
-      data: {
-        studentId: student._id,
-        oldStatus: oldStatus,
-        newStatus: status,
-        adminNote: adminNote
-      }
-    });
+    try {
+      await Notification.createNotification({
+        recipient: student.userId,
+        type: 'status_change',
+        title: 'Registration Status Update',
+        message: `Your registration status has been updated to ${status}.`,
+        data: {
+          studentId: student._id,
+          oldStatus: oldStatus,
+          newStatus: status,
+          adminNote: adminNote
+        }
+      });
+    } catch (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      // Continue even if notification fails
+    }
 
     res.json({
       message: `Student status changed from ${oldStatus} to ${status} successfully`,
       student
     });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in changeStudentStatus:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -339,6 +347,20 @@ exports.deleteStudentRegistration = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
+    // Send notification to student before deletion
+    await Notification.createNotification({
+      recipient: student.userId._id,
+      type: 'account_deletion',
+      title: 'Student Registration Deleted',
+      message: 'Your student registration has been deleted by an administrator. Your account has been reverted to regular user status.',
+      data: {
+        studentId: student._id,
+        studentName: `${student.firstName} ${student.lastName}`,
+        deletedBy: req.user.id,
+        deletionDate: new Date()
+      }
+    });
+
     // Remove student from enrolled classes
     if (student.enrolledClasses.length > 0) {
       for (const classId of student.enrolledClasses) {
@@ -352,6 +374,9 @@ exports.deleteStudentRegistration = async (req, res) => {
       }
     }
 
+    // Delete all class requests for this student
+    await ClassRequest.deleteMany({ student: student._id });
+
     // Update user role back to 'user'
     const user = await User.findById(student.userId._id);
     if (user) {
@@ -360,7 +385,7 @@ exports.deleteStudentRegistration = async (req, res) => {
       await user.save();
     }
 
-    // Delete student record
+    // Delete student record (notification will remain for user to see)
     await Student.findByIdAndDelete(studentId);
 
     res.json({

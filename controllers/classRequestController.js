@@ -296,12 +296,15 @@ exports.rejectClassRequest = async (req, res) => {
 exports.changeClassRequestStatus = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.error('Validation errors:', errors.array());
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
     const { requestId } = req.params;
     const { status, adminNote } = req.body;
+
+    console.log('Changing class request status:', { requestId, status, adminNote });
 
     const classRequest = await ClassRequest.findById(requestId)
       .populate({
@@ -318,44 +321,64 @@ exports.changeClassRequestStatus = async (req, res) => {
 
     // If changing from approved to rejected/pending, remove student from class
     if (oldStatus === 'Approved' && status !== 'Approved') {
-      // Remove student from class
-      if (classRequest.class.enrolledStudents) {
-        classRequest.class.enrolledStudents = classRequest.class.enrolledStudents.filter(
-          id => !id.equals(classRequest.student._id)
-        );
-        await classRequest.class.save();
-      }
+      try {
+        // Remove student from class
+        if (classRequest.class && classRequest.class.enrolledStudents) {
+          const originalLength = classRequest.class.enrolledStudents.length;
+          classRequest.class.enrolledStudents = classRequest.class.enrolledStudents.filter(
+            id => !id.equals(classRequest.student._id)
+          );
+          if (originalLength !== classRequest.class.enrolledStudents.length) {
+            await classRequest.class.save();
+          }
+        }
 
-      // Remove class from student
-      if (classRequest.student.enrolledClasses) {
-        classRequest.student.enrolledClasses = classRequest.student.enrolledClasses.filter(
-          id => !id.equals(classRequest.class._id)
-        );
-        await classRequest.student.save();
+        // Remove class from student
+        if (classRequest.student && classRequest.student.enrolledClasses) {
+          const originalLength = classRequest.student.enrolledClasses.length;
+          classRequest.student.enrolledClasses = classRequest.student.enrolledClasses.filter(
+            id => !id.equals(classRequest.class._id)
+          );
+          if (originalLength !== classRequest.student.enrolledClasses.length) {
+            await classRequest.student.save();
+          }
+        }
+      } catch (error) {
+        console.error('Error removing student from class:', error);
+        // Continue with status change even if removal fails
       }
     }
 
     // If changing from rejected/pending to approved, add student to class
     if (oldStatus !== 'Approved' && status === 'Approved') {
-      // Check class capacity
-      const enrolledCount = classRequest.class.enrolledStudents ? classRequest.class.enrolledStudents.length : 0;
-      if (enrolledCount >= classRequest.class.capacity) {
-        return res.status(400).json({ message: 'Class is at full capacity' });
-      }
+      try {
+        // Check class capacity
+        const enrolledCount = classRequest.class.enrolledStudents ? classRequest.class.enrolledStudents.length : 0;
+        if (enrolledCount >= classRequest.class.capacity) {
+          return res.status(400).json({ message: 'Class is at full capacity' });
+        }
 
-      // Add student to class
-      if (!classRequest.class.enrolledStudents) {
-        classRequest.class.enrolledStudents = [];
-      }
-      classRequest.class.enrolledStudents.push(classRequest.student._id);
-      await classRequest.class.save();
+        // Add student to class (only if not already enrolled)
+        if (!classRequest.class.enrolledStudents) {
+          classRequest.class.enrolledStudents = [];
+        }
+        if (!classRequest.class.enrolledStudents.some(id => id.equals(classRequest.student._id))) {
+          classRequest.class.enrolledStudents.push(classRequest.student._id);
+          await classRequest.class.save();
+        }
 
-      // Add class to student
-      if (!classRequest.student.enrolledClasses) {
-        classRequest.student.enrolledClasses = [];
+        // Add class to student (only if not already enrolled)
+        if (!classRequest.student.enrolledClasses) {
+          classRequest.student.enrolledClasses = [];
+        }
+        if (!classRequest.student.enrolledClasses.some(id => id.equals(classRequest.class._id))) {
+          classRequest.student.enrolledClasses.push(classRequest.class._id);
+          await classRequest.student.save();
+        }
+      } catch (error) {
+        console.error('Error adding student to class:', error);
+        return res.status(500).json({ message: 'Error enrolling student in class' });
       }
-      classRequest.student.enrolledClasses.push(classRequest.class._id);
-      await classRequest.student.save();
     }
 
     // Update request status
@@ -369,19 +392,24 @@ exports.changeClassRequestStatus = async (req, res) => {
     await classRequest.save();
 
     // Create notification for student
-    await Notification.createNotification({
-      recipient: classRequest.student.userId,
-      type: 'class_request_status_change',
-      title: 'Class Request Status Update',
-      message: `Your class enrollment request status has been updated to ${status}.`,
-      data: {
-        classRequestId: classRequest._id,
-        classId: classRequest.class._id,
-        oldStatus: oldStatus,
-        newStatus: status,
-        adminNote: adminNote
-      }
-    });
+    try {
+      await Notification.createNotification({
+        recipient: classRequest.student.userId,
+        type: 'class_request_status_change',
+        title: 'Class Request Status Update',
+        message: `Your class enrollment request status has been updated to ${status}.`,
+        data: {
+          classRequestId: classRequest._id,
+          classId: classRequest.class._id,
+          oldStatus: oldStatus,
+          newStatus: status,
+          adminNote: adminNote
+        }
+      });
+    } catch (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      // Continue even if notification fails
+    }
 
     res.json({
       message: `Class request status changed from ${oldStatus} to ${status} successfully`,
