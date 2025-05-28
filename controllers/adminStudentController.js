@@ -3,6 +3,7 @@ const Student = require('../models/Student');
 const User = require('../models/User');
 const Class = require('../models/Class');
 const Notification = require('../models/Notification');
+const ClassRequest = require('../models/ClassRequest');
 
 // Get all student registration requests
 exports.getStudentRegistrations = async (req, res) => {
@@ -302,6 +303,190 @@ exports.deleteStudentRegistration = async (req, res) => {
 
     res.json({
       message: 'Student registration deleted successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Remove student from class
+exports.removeStudentFromClass = async (req, res) => {
+  try {
+    const { studentId, classId } = req.params;
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const classItem = await Class.findById(classId);
+    if (!classItem) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    // Remove class from student's enrolled classes
+    student.enrolledClasses = student.enrolledClasses.filter(
+      id => !id.equals(classId)
+    );
+
+    // Remove student from class's enrolled students
+    classItem.enrolledStudents = classItem.enrolledStudents.filter(
+      id => !id.equals(studentId)
+    );
+
+    await student.save();
+    await classItem.save();
+
+    res.json({
+      message: 'Student removed from class successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Change student's class
+exports.changeStudentClass = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { studentId } = req.params;
+    const { oldClassId, newClassId } = req.body;
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const oldClass = await Class.findById(oldClassId);
+    const newClass = await Class.findById(newClassId);
+
+    if (!oldClass || !newClass) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    // Check if new class has capacity
+    const enrolledCount = newClass.enrolledStudents ? newClass.enrolledStudents.length : 0;
+    if (enrolledCount >= newClass.capacity) {
+      return res.status(400).json({ message: 'New class is at full capacity' });
+    }
+
+    // Remove from old class
+    student.enrolledClasses = student.enrolledClasses.filter(
+      id => !id.equals(oldClassId)
+    );
+    oldClass.enrolledStudents = oldClass.enrolledStudents.filter(
+      id => !id.equals(studentId)
+    );
+
+    // Add to new class
+    student.enrolledClasses.push(newClassId);
+    if (!newClass.enrolledStudents) {
+      newClass.enrolledStudents = [];
+    }
+    newClass.enrolledStudents.push(studentId);
+
+    await student.save();
+    await oldClass.save();
+    await newClass.save();
+
+    // Create notification for student
+    await Notification.createNotification({
+      recipient: student.userId,
+      type: 'general',
+      title: 'Class Change Notification',
+      message: `You have been moved from ${oldClass.grade} - ${oldClass.category} to ${newClass.grade} - ${newClass.category} class.`,
+      data: {
+        classId: newClass._id,
+        adminNote: 'Class changed by administrator'
+      }
+    });
+
+    res.json({
+      message: 'Student class changed successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Send message to student
+exports.sendMessageToStudent = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { studentId } = req.params;
+    const { subject, message } = req.body;
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Create notification for student
+    await Notification.createNotification({
+      recipient: student.userId,
+      type: 'admin_message',
+      title: subject,
+      message: message,
+      data: {
+        studentId: student._id,
+        subject: subject
+      }
+    });
+
+    res.json({
+      message: 'Message sent to student successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get available classes for student assignment
+exports.getAvailableClassesForAssignment = async (req, res) => {
+  try {
+    const classes = await Class.find({
+      type: 'Normal',
+      isActive: true
+    }).select('type grade date startTime endTime venue category capacity enrolledStudents');
+
+    // Add available spots to each class
+    const classesWithSpots = classes.map(classItem => ({
+      ...classItem.toObject(),
+      enrolledCount: classItem.enrolledStudents ? classItem.enrolledStudents.length : 0,
+      availableSpots: classItem.capacity - (classItem.enrolledStudents ? classItem.enrolledStudents.length : 0)
+    }));
+
+    res.json({
+      classes: classesWithSpots
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get available grades for filtering
+exports.getAvailableGrades = async (req, res) => {
+  try {
+    const grades = await Class.distinct('grade', {
+      type: 'Normal',
+      isActive: true
+    });
+
+    res.json({
+      grades: grades.sort()
     });
   } catch (err) {
     console.error(err.message);

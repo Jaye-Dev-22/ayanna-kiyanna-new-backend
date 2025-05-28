@@ -11,7 +11,7 @@ const {
   getStudentProfile,
   studentLogin,
   getAvailableClasses,
-  requestClassEnrollment,
+  getStudentClassRequests,
   getAllGrades
 } = require('../controllers/studentController');
 
@@ -50,10 +50,7 @@ const studentLoginValidation = [
   check('studentPassword', 'Student password is required').not().isEmpty()
 ];
 
-// Validation rules for class enrollment
-const classEnrollmentValidation = [
-  check('classId', 'Class ID is required').not().isEmpty()
-];
+
 
 // @route   POST /api/students/register
 // @desc    Register new student
@@ -75,10 +72,10 @@ router.post('/login', [auth, ...studentLoginValidation], studentLogin);
 // @access  Private (Student)
 router.get('/available-classes', auth, getAvailableClasses);
 
-// @route   POST /api/students/enroll-class
-// @desc    Request enrollment in a class
+// @route   GET /api/students/class-requests
+// @desc    Get student's class requests
 // @access  Private (Student)
-router.post('/enroll-class', [auth, ...classEnrollmentValidation], requestClassEnrollment);
+router.get('/class-requests', auth, getStudentClassRequests);
 
 // @route   GET /api/students/grades
 // @desc    Get all available grades

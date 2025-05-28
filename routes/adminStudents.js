@@ -13,12 +13,27 @@ const {
   rejectStudentRegistration,
   approveAllPending,
   getStudentById,
-  deleteStudentRegistration
+  deleteStudentRegistration,
+  removeStudentFromClass,
+  changeStudentClass,
+  sendMessageToStudent,
+  getAvailableClassesForAssignment,
+  getAvailableGrades
 } = require('../controllers/adminStudentController');
 
 // Validation rules for admin actions
 const adminActionValidation = [
   check('adminNote', 'Admin note must be at least 3 characters').optional().isLength({ min: 3 })
+];
+
+const classChangeValidation = [
+  check('oldClassId', 'Old class ID is required').not().isEmpty(),
+  check('newClassId', 'New class ID is required').not().isEmpty()
+];
+
+const messageValidation = [
+  check('subject', 'Subject is required').not().isEmpty().trim(),
+  check('message', 'Message is required').not().isEmpty().trim()
 ];
 
 // @route   GET /api/admin/students
@@ -55,5 +70,30 @@ router.put('/approve-all', [adminAuth, ...adminActionValidation], approveAllPend
 // @desc    Delete student registration
 // @access  Private (Admin/Moderator)
 router.delete('/:studentId', adminAuth, deleteStudentRegistration);
+
+// @route   DELETE /api/admin/students/:studentId/classes/:classId
+// @desc    Remove student from class
+// @access  Private (Admin/Moderator)
+router.delete('/:studentId/classes/:classId', adminAuth, removeStudentFromClass);
+
+// @route   PUT /api/admin/students/:studentId/change-class
+// @desc    Change student's class
+// @access  Private (Admin/Moderator)
+router.put('/:studentId/change-class', [adminAuth, ...classChangeValidation], changeStudentClass);
+
+// @route   POST /api/admin/students/:studentId/message
+// @desc    Send message to student
+// @access  Private (Admin/Moderator)
+router.post('/:studentId/message', [adminAuth, ...messageValidation], sendMessageToStudent);
+
+// @route   GET /api/admin/students/available-classes
+// @desc    Get available classes for assignment
+// @access  Private (Admin/Moderator)
+router.get('/available-classes', adminAuth, getAvailableClassesForAssignment);
+
+// @route   GET /api/admin/students/available-grades
+// @desc    Get available grades for filtering
+// @access  Private (Admin/Moderator)
+router.get('/available-grades', adminAuth, getAvailableGrades);
 
 module.exports = router;

@@ -39,7 +39,7 @@ exports.markNotificationAsRead = async (req, res) => {
     const { notificationId } = req.params;
 
     const notification = await Notification.markAsRead(notificationId, req.user.id);
-    
+
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
@@ -75,7 +75,7 @@ exports.markAllAsRead = async (req, res) => {
 exports.getUnreadCount = async (req, res) => {
   try {
     const unreadCount = await Notification.getUnreadCount(req.user.id);
-    
+
     res.json({
       unreadCount
     });
@@ -101,6 +101,26 @@ exports.deleteNotification = async (req, res) => {
 
     res.json({
       message: 'Notification deleted successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Mark all notifications as read
+exports.markAllAsRead = async (req, res) => {
+  try {
+    const readAt = new Date();
+    const expiresAt = new Date(readAt.getTime() + 24 * 60 * 60 * 1000); // 1 day from read time
+
+    await Notification.updateMany(
+      { recipient: req.user.id, read: false },
+      { read: true, readAt, expiresAt }
+    );
+
+    res.json({
+      message: 'All notifications marked as read'
     });
   } catch (err) {
     console.error(err.message);

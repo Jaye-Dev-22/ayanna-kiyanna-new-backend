@@ -8,7 +8,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['student_registration_approved', 'student_registration_rejected', 'class_enrollment', 'general'],
+    enum: ['student_registration_approved', 'student_registration_rejected', 'class_enrollment', 'class_request_approved', 'class_request_rejected', 'admin_message', 'general'],
     required: true
   },
   title: {
@@ -31,7 +31,15 @@ const NotificationSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Class'
     },
+    classRequestId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ClassRequest'
+    },
     adminNote: {
+      type: String,
+      trim: true
+    },
+    subject: {
       type: String,
       trim: true
     }
@@ -75,9 +83,12 @@ NotificationSchema.statics.createNotification = async function(notificationData)
 // Static method to mark as read
 NotificationSchema.statics.markAsRead = async function(notificationId, userId) {
   try {
+    const readAt = new Date();
+    const expiresAt = new Date(readAt.getTime() + 24 * 60 * 60 * 1000); // 1 day from read time
+
     const notification = await this.findOneAndUpdate(
       { _id: notificationId, recipient: userId },
-      { read: true, readAt: new Date() },
+      { read: true, readAt, expiresAt },
       { new: true }
     );
     return notification;
@@ -99,4 +110,25 @@ NotificationSchema.statics.getUnreadCount = async function(userId) {
   }
 };
 
-module.exports = mongoose.model('Notification', NotificationSchema);
+// Index for better query performance
+NotificationSchema.index({ recipient: 1 });
+NotificationSchema.index({ read: 1 });
+NotificationSchema.index({ createdAt: -1 });
+NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+const Notification = mongoose.model('Notification', NotificationSchema);
+
+// Auto-delete expired notifications
+setInterval(async () => {
+  try {
+    const now = new Date();
+    await Notification.deleteMany({
+      read: true,
+      expiresAt: { $lte: now }
+    });
+  } catch (error) {
+    console.error('Error auto-deleting expired notifications:', error);
+  }
+}, 60 * 60 * 1000); // Run every hour
+
+module.exports = Notification;

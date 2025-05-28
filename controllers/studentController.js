@@ -234,79 +234,22 @@ exports.getAvailableClasses = async (req, res) => {
   }
 };
 
-// Request enrollment in a class
-exports.requestClassEnrollment = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
+// Get student's class requests and pending status
+exports.getStudentClassRequests = async (req, res) => {
   try {
-    const { classId } = req.body;
-
     // Find student
     const student = await Student.findOne({ userId: req.user.id });
     if (!student) {
       return res.status(404).json({ message: 'Student profile not found' });
     }
 
-    // Check if student is approved
-    if (student.status !== 'Approved') {
-      return res.status(400).json({ message: 'Student registration must be approved before enrolling in classes' });
-    }
-
-    // Find class
-    const classItem = await Class.findById(classId);
-    if (!classItem) {
-      return res.status(404).json({ message: 'Class not found' });
-    }
-
-    // Check if class is active and normal type
-    if (!classItem.isActive || classItem.type !== 'Normal') {
-      return res.status(400).json({ message: 'Class is not available for enrollment' });
-    }
-
-    // Check if already enrolled
-    if (student.enrolledClasses && student.enrolledClasses.includes(classId)) {
-      return res.status(400).json({ message: 'Already enrolled in this class' });
-    }
-
-    // Check class capacity
-    const enrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
-    if (enrolledCount >= classItem.capacity) {
-      return res.status(400).json({ message: 'Class is full' });
-    }
-
-    // Add student to class and class to student
-    // Initialize enrolledStudents array if it doesn't exist
-    if (!classItem.enrolledStudents) {
-      classItem.enrolledStudents = [];
-    }
-    classItem.enrolledStudents.push(student._id);
-
-    // Initialize enrolledClasses array if it doesn't exist
-    if (!student.enrolledClasses) {
-      student.enrolledClasses = [];
-    }
-    student.enrolledClasses.push(classId);
-
-    await classItem.save();
-    await student.save();
-
-    // Create notification for student
-    await Notification.createNotification({
-      recipient: req.user.id,
-      type: 'class_enrollment',
-      title: 'Class Enrollment Successful',
-      message: `You have been successfully enrolled in ${classItem.grade} - ${classItem.category} class.`,
-      data: {
-        classId: classItem._id
-      }
-    });
+    const ClassRequest = require('../models/ClassRequest');
+    const requests = await ClassRequest.find({ student: student._id })
+      .populate('class', 'type grade date startTime endTime venue category')
+      .sort({ createdAt: -1 });
 
     res.json({
-      message: 'Successfully enrolled in class',
-      class: classItem
+      requests
     });
   } catch (err) {
     console.error(err.message);
