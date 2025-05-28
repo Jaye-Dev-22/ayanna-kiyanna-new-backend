@@ -8,7 +8,18 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['student_registration_approved', 'student_registration_rejected', 'class_enrollment', 'class_request_approved', 'class_request_rejected', 'admin_message', 'general'],
+    enum: [
+      'student_registration_approved',
+      'student_registration_rejected',
+      'class_enrollment',
+      'class_request_approved',
+      'class_request_rejected',
+      'class_request_status_change',
+      'admin_message',
+      'general',
+      'account_deletion',
+      'status_change'
+    ],
     required: true
   },
   title: {

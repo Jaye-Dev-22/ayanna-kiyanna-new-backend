@@ -606,4 +606,78 @@ exports.deleteClassRequest = async (req, res) => {
   }
 };
 
+// Delete class request (Admin)
+exports.adminDeleteClassRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+
+    // Find the class request
+    const classRequest = await ClassRequest.findById(requestId)
+      .populate('student', 'firstName lastName studentId')
+      .populate('class', 'grade category');
+
+    if (!classRequest) {
+      return res.status(404).json({ message: 'Class request not found' });
+    }
+
+    // If the request was approved, remove student from class
+    if (classRequest.status === 'Approved') {
+      try {
+        const classItem = await Class.findById(classRequest.class._id);
+        if (classItem && classItem.enrolledStudents) {
+          classItem.enrolledStudents = classItem.enrolledStudents.filter(
+            id => !id.equals(classRequest.student._id)
+          );
+          await classItem.save();
+        }
+
+        // Remove class from student's enrolled classes
+        const student = await Student.findById(classRequest.student._id);
+        if (student && student.enrolledClasses) {
+          student.enrolledClasses = student.enrolledClasses.filter(
+            id => !id.equals(classRequest.class._id)
+          );
+          await student.save();
+        }
+      } catch (error) {
+        console.error('Error removing student from class during deletion:', error);
+        // Continue with deletion even if removal fails
+      }
+    }
+
+    // Create notification for student
+    try {
+      await Notification.createNotification({
+        recipient: classRequest.student.userId || classRequest.student._id,
+        type: 'general',
+        title: 'Class Request Deleted',
+        message: `Your class enrollment request for ${classRequest.class.grade} - ${classRequest.class.category} has been deleted by an administrator.`,
+        data: {
+          classRequestId: classRequest._id,
+          classId: classRequest.class._id,
+          adminNote: 'Request deleted by administrator'
+        }
+      });
+    } catch (notificationError) {
+      console.error('Error creating notification for deleted class request:', notificationError);
+      // Continue with deletion even if notification fails
+    }
+
+    // Delete the request
+    await ClassRequest.findByIdAndDelete(requestId);
+
+    res.json({
+      message: 'Class request deleted successfully',
+      deletedRequest: {
+        studentName: `${classRequest.student.firstName} ${classRequest.student.lastName}`,
+        className: `${classRequest.class.grade} - ${classRequest.class.category}`,
+        status: classRequest.status
+      }
+    });
+  } catch (err) {
+    console.error('Error in adminDeleteClassRequest:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 module.exports = exports;
