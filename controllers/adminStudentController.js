@@ -34,10 +34,23 @@ exports.getStudentRegistrations = async (req, res) => {
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
+    // Add calculated fields to enrolled classes
+    const studentsWithCalculatedFields = students.map(student => {
+      const studentObj = student.toObject();
+      if (studentObj.enrolledClasses && studentObj.enrolledClasses.length > 0) {
+        studentObj.enrolledClasses = studentObj.enrolledClasses.map(classItem => ({
+          ...classItem,
+          enrolledCount: classItem.enrolledStudents ? classItem.enrolledStudents.length : 0,
+          availableSpots: classItem.capacity - (classItem.enrolledStudents ? classItem.enrolledStudents.length : 0)
+        }));
+      }
+      return studentObj;
+    });
+
     const total = await Student.countDocuments(filter);
 
     res.json({
-      students,
+      students: studentsWithCalculatedFields,
       totalPages: Math.ceil(total / limit),
       currentPage: page,
       total
@@ -272,7 +285,17 @@ exports.getStudentById = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    res.json(student);
+    // Add calculated fields to enrolled classes
+    const studentObj = student.toObject();
+    if (studentObj.enrolledClasses && studentObj.enrolledClasses.length > 0) {
+      studentObj.enrolledClasses = studentObj.enrolledClasses.map(classItem => ({
+        ...classItem,
+        enrolledCount: classItem.enrolledStudents ? classItem.enrolledStudents.length : 0,
+        availableSpots: classItem.capacity - (classItem.enrolledStudents ? classItem.enrolledStudents.length : 0)
+      }));
+    }
+
+    res.json(studentObj);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error', error: err.message });
