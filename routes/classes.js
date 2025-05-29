@@ -20,7 +20,8 @@ const {
   cleanAndResetAvailableSpots,
   addMonitor,
   removeMonitor,
-  getEnrolledStudents
+  getEnrolledStudents,
+  confirmMonitors
 } = require('../controllers/classController');
 
 // Validation rules for class creation/update
@@ -136,5 +137,10 @@ router.post('/:id/remove-monitor', [
 // @desc    Get enrolled students for a class (with search)
 // @access  Private (Admin/Moderator or Student)
 router.get('/:id/students', auth, getEnrolledStudents);
+
+// @route   POST /api/classes/:id/confirm-monitors
+// @desc    Confirm monitors - Check if monitor students are currently enrolled in the class
+// @access  Private (Admin/Moderator)
+router.post('/:id/confirm-monitors', adminAuth, confirmMonitors);
 
 module.exports = router;

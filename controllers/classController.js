@@ -697,3 +697,116 @@ exports.getEnrolledStudents = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// Confirm monitors - Check if monitor students are currently enrolled in the class
+exports.confirmMonitors = async (req, res) => {
+  try {
+    const classId = req.params.id;
+    const Student = require('../models/Student');
+
+    const classItem = await Class.findById(classId);
+    if (!classItem) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    let monitorsRemoved = 0;
+    const removedMonitors = [];
+    const originalMonitorsCount = classItem.monitors ? classItem.monitors.length : 0;
+
+    if (classItem.monitors && classItem.monitors.length > 0) {
+      const monitorsToRemove = [];
+
+      // Check each monitor
+      for (const monitorId of classItem.monitors) {
+        try {
+          // Check if monitor student exists
+          const student = await Student.findById(monitorId);
+
+          if (!student) {
+            // Student doesn't exist (deleted) - remove from monitors
+            monitorsToRemove.push(monitorId);
+            removedMonitors.push({ id: monitorId.toString(), reason: 'Student deleted' });
+            console.log(`Deleted student ${monitorId} will be removed from class monitors`);
+          } else {
+            // Student exists - check if class is in their enrolledClasses
+            const isEnrolledInClass = student.enrolledClasses &&
+              student.enrolledClasses.some(classId => classId.equals(classItem._id));
+
+            if (!isEnrolledInClass) {
+              // Student exists but not enrolled in this class - remove from monitors
+              monitorsToRemove.push(monitorId);
+              removedMonitors.push({
+                id: monitorId.toString(),
+                name: `${student.firstName} ${student.lastName}`,
+                studentId: student.studentId,
+                reason: 'Not enrolled in class'
+              });
+              console.log(`Student ${student.firstName} ${student.lastName} (${student.studentId}) will be removed from monitors - not enrolled in class`);
+            }
+          }
+        } catch (error) {
+          // Error finding student (likely deleted) - remove from monitors
+          monitorsToRemove.push(monitorId);
+          removedMonitors.push({ id: monitorId.toString(), reason: 'Error finding student' });
+          console.log(`Error finding student ${monitorId}, will be removed from monitors`);
+        }
+      }
+
+      // Remove identified monitors from class
+      if (monitorsToRemove.length > 0) {
+        classItem.monitors = classItem.monitors.filter(
+          monitorId => !monitorsToRemove.some(removeId =>
+            removeId.equals ? removeId.equals(monitorId) : removeId.toString() === monitorId.toString()
+          )
+        );
+        monitorsRemoved = monitorsToRemove.length;
+        await classItem.save();
+      }
+    }
+
+    const summary = {
+      classId: classItem._id,
+      className: `${classItem.grade} - ${classItem.category}`,
+      originalMonitorsCount,
+      newMonitorsCount: classItem.monitors.length,
+      monitorsRemoved,
+      removedMonitors,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('Monitor confirmation completed:', summary);
+
+    // Get updated class with populated monitors
+    const updatedClass = await Class.findById(classId)
+      .populate('createdBy', 'fullName email')
+      .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
+      .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
+
+    if (res) {
+      // If called via API endpoint
+      res.json({
+        success: true,
+        message: monitorsRemoved > 0 ?
+          `Monitor confirmation completed. ${monitorsRemoved} invalid monitor(s) removed.` :
+          'All monitors are valid and currently enrolled in the class.',
+        summary,
+        class: updatedClass
+      });
+    } else {
+      // If called internally
+      return summary;
+    }
+
+  } catch (error) {
+    console.error('Error in confirmMonitors:', error);
+    if (res) {
+      res.status(500).json({
+        success: false,
+        message: 'Error confirming monitors',
+        error: error.message
+      });
+    } else {
+      throw error;
+    }
+  }
+};
