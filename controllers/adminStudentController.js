@@ -28,7 +28,7 @@ exports.getStudentRegistrations = async (req, res) => {
 
     const students = await Student.find(filter)
       .populate('userId', 'email fullName emailVerified')
-      .populate('enrolledClasses', 'type grade date startTime endTime venue category')
+      .populate('enrolledClasses', 'type grade date startTime endTime venue category capacity enrolledStudents platform')
       .populate('adminAction.actionBy', 'fullName email')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -265,7 +265,7 @@ exports.getStudentById = async (req, res) => {
 
     const student = await Student.findById(studentId)
       .populate('userId', 'email fullName emailVerified')
-      .populate('enrolledClasses', 'type grade date startTime endTime venue category platform')
+      .populate('enrolledClasses', 'type grade date startTime endTime venue category capacity enrolledStudents platform')
       .populate('adminAction.actionBy', 'fullName email');
 
     if (!student) {
