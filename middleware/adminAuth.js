@@ -19,7 +19,7 @@ module.exports = async (req, res, next) => {
     const user = await User.findById(decoded.user.id).select('-password');
     
     if (!user) {
-      return res.status(401).json({ message: 'Token is not valid' });
+      return res.status(401).json({ message: 'Token is not valid. Logout and Sign Again.' });
     }
 
     // Check if user has admin or moderator role
@@ -39,6 +39,6 @@ module.exports = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('Admin auth middleware error:', err.message);
-    res.status(401).json({ message: 'Token is not valid' });
+    res.status(401).json({ message: 'Token is not valid. Logout and Sign Again.' });
   }
 };
