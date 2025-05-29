@@ -4,6 +4,8 @@ const Student = require('../models/Student');
 const User = require('../models/User');
 const Class = require('../models/Class');
 const Notification = require('../models/Notification');
+const OTP = require('../models/OTP');
+const emailService = require('../services/emailService');
 
 // Register new student
 exports.registerStudent = async (req, res) => {
@@ -274,6 +276,120 @@ exports.getAllGrades = async (_req, res) => {
     res.json({ grades: grades.sort() });
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Send password reset OTP
+exports.sendPasswordResetOTP = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email address' });
+    }
+
+    // Check if user has student role
+    if (user.role !== 'student') {
+      return res.status(400).json({ message: 'This email is not associated with a student account' });
+    }
+
+    // Find student record
+    const student = await Student.findOne({ userId: user._id });
+    if (!student) {
+      return res.status(404).json({ message: 'Student record not found' });
+    }
+
+    // Generate and save OTP for password reset
+    const otpCode = await OTP.createOTP(email, 'password_reset');
+
+    // Send password reset OTP email
+    const emailResult = await emailService.sendPasswordResetOTPEmail(email, otpCode, user.fullName);
+
+    if (!emailResult.success) {
+      return res.status(500).json({ message: 'Failed to send password reset email' });
+    }
+
+    res.json({
+      message: 'Password reset code sent to your email',
+      email: email
+    });
+  } catch (err) {
+    console.error('Error in sendPasswordResetOTP:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Verify password reset OTP
+exports.verifyPasswordResetOTP = async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    // Verify OTP
+    const verificationResult = await OTP.verifyOTP(email, otp, 'password_reset');
+
+    if (!verificationResult.success) {
+      return res.status(400).json({ message: verificationResult.message });
+    }
+
+    res.json({
+      message: 'OTP verified successfully. You can now reset your password.',
+      verified: true
+    });
+  } catch (err) {
+    console.error('Error in verifyPasswordResetOTP:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Reset student password
+exports.resetStudentPassword = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  try {
+    // Verify OTP one more time
+    const otpRecord = await OTP.findOne({
+      email,
+      otp,
+      purpose: 'password_reset',
+      verified: true
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP. Please request a new password reset.' });
+    }
+
+    // Find user and student
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const student = await Student.findOne({ userId: user._id });
+    if (!student) {
+      return res.status(404).json({ message: 'Student record not found' });
+    }
+
+    // Update passwords in both User and Student models
+    user.studentPassword = newPassword; // Will be hashed by pre-save hook
+    await user.save();
+
+    student.studentPassword = newPassword; // Will be hashed by pre-save hook
+    await student.save();
+
+    // Clean up used OTP
+    await OTP.deleteMany({ email, purpose: 'password_reset' });
+
+    // Send confirmation email
+    await emailService.sendPasswordResetConfirmationEmail(email, user.fullName);
+
+    res.json({
+      message: 'Password reset successfully. You can now login with your new password.'
+    });
+  } catch (err) {
+    console.error('Error in resetStudentPassword:', err.message);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };

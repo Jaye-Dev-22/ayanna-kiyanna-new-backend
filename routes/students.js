@@ -12,7 +12,10 @@ const {
   studentLogin,
   getAvailableClasses,
   getStudentClassRequests,
-  getAllGrades
+  getAllGrades,
+  sendPasswordResetOTP,
+  verifyPasswordResetOTP,
+  resetStudentPassword
 } = require('../controllers/studentController');
 
 // Validation rules for student registration
@@ -81,5 +84,30 @@ router.get('/class-requests', auth, getStudentClassRequests);
 // @desc    Get all available grades
 // @access  Private (Student)
 router.get('/grades', auth, getAllGrades);
+
+// Password Reset Routes (Public - no auth required)
+// @route   POST /api/students/forgot-password
+// @desc    Send password reset OTP to email
+// @access  Public
+router.post('/forgot-password', [
+  check('email', 'Please include a valid email').isEmail()
+], sendPasswordResetOTP);
+
+// @route   POST /api/students/verify-reset-otp
+// @desc    Verify password reset OTP
+// @access  Public
+router.post('/verify-reset-otp', [
+  check('email', 'Please include a valid email').isEmail(),
+  check('otp', 'OTP is required').isLength({ min: 6, max: 6 })
+], verifyPasswordResetOTP);
+
+// @route   POST /api/students/reset-password
+// @desc    Reset student password with verified OTP
+// @access  Public
+router.post('/reset-password', [
+  check('email', 'Please include a valid email').isEmail(),
+  check('otp', 'OTP is required').isLength({ min: 6, max: 6 }),
+  check('newPassword', 'Please enter a password with 6+ characters').isLength({ min: 6 })
+], resetStudentPassword);
 
 module.exports = router;
