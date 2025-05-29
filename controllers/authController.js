@@ -272,8 +272,8 @@ exports.sendPasswordResetOTP = async (req, res) => {
     // Generate and save OTP for password reset
     const otpCode = await OTP.createOTP(email, 'password_reset');
 
-    // Send password reset OTP email
-    const emailResult = await emailService.sendPasswordResetOTPEmail(email, otpCode, user.fullName);
+    // Send user password reset OTP email
+    const emailResult = await emailService.sendUserPasswordResetOTPEmail(email, otpCode, user.fullName);
 
     if (!emailResult.success) {
       return res.status(500).json({ message: 'Failed to send password reset email' });
@@ -300,12 +300,15 @@ exports.verifyPasswordResetOTP = async (req, res) => {
   const { email, otp } = req.body;
 
   try {
-    // Verify OTP
-    const verificationResult = await OTP.verifyOTP(email, otp, 'password_reset');
+    // Check OTP without marking as verified (for intermediate step)
+    const verificationResult = await OTP.checkOTP(email, otp, 'password_reset');
 
     if (!verificationResult.success) {
       return res.status(400).json({ message: verificationResult.message });
     }
+
+    // Now mark it as verified for final use
+    await OTP.verifyOTP(email, otp, 'password_reset');
 
     res.json({
       message: 'OTP verified successfully. You can now reset your password.',
@@ -328,8 +331,8 @@ exports.resetUserPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
   try {
-    // Verify OTP one more time
-    const verificationResult = await OTP.verifyOTP(email, otp, 'password_reset');
+    // Verify OTP for final use (should already be verified)
+    const verificationResult = await OTP.verifyOTPForFinalUse(email, otp, 'password_reset');
     if (!verificationResult.success) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
@@ -347,8 +350,8 @@ exports.resetUserPassword = async (req, res) => {
     // Clean up used OTP
     await OTP.deleteMany({ email, purpose: 'password_reset' });
 
-    // Send confirmation email
-    await emailService.sendPasswordResetConfirmationEmail(email, user.fullName);
+    // Send user confirmation email
+    await emailService.sendUserPasswordResetConfirmationEmail(email, user.fullName);
 
     res.json({
       message: 'Password reset successfully. You can now login with your new password.'

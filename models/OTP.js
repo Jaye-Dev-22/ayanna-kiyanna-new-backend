@@ -59,49 +59,99 @@ OTPSchema.statics.generateOTP = function() {
 OTPSchema.statics.createOTP = async function(email, purpose) {
   // Remove any existing OTPs for this email and purpose
   await this.deleteMany({ email, purpose });
-  
+
   // Generate new OTP
   const otpCode = this.generateOTP();
-  
+
   // Create new OTP record
   const otp = new this({
     email,
     otp: otpCode,
     purpose
   });
-  
+
   await otp.save();
   return otpCode;
 };
 
-// Static method to verify OTP
+// Static method to verify OTP (marks as verified)
 OTPSchema.statics.verifyOTP = async function(email, otpCode, purpose) {
-  const otpRecord = await this.findOne({ 
-    email, 
-    otp: otpCode, 
+  const otpRecord = await this.findOne({
+    email,
+    otp: otpCode,
     purpose,
-    verified: false 
+    verified: false
   });
-  
+
   if (!otpRecord) {
     return { success: false, message: 'Invalid or expired OTP' };
   }
-  
+
   if (otpRecord.isExpired()) {
     await otpRecord.deleteOne();
     return { success: false, message: 'OTP has expired' };
   }
-  
+
   if (otpRecord.attempts >= 5) {
     await otpRecord.deleteOne();
     return { success: false, message: 'Too many attempts. Please request a new OTP' };
   }
-  
+
   // Mark as verified
   otpRecord.verified = true;
   await otpRecord.save();
-  
+
   return { success: true, message: 'OTP verified successfully' };
+};
+
+// Static method to check OTP without marking as verified (for intermediate verification)
+OTPSchema.statics.checkOTP = async function(email, otpCode, purpose) {
+  const otpRecord = await this.findOne({
+    email,
+    otp: otpCode,
+    purpose
+  });
+
+  if (!otpRecord) {
+    return { success: false, message: 'Invalid or expired OTP' };
+  }
+
+  if (otpRecord.isExpired()) {
+    await otpRecord.deleteOne();
+    return { success: false, message: 'OTP has expired' };
+  }
+
+  if (otpRecord.attempts >= 5) {
+    await otpRecord.deleteOne();
+    return { success: false, message: 'Too many attempts. Please request a new OTP' };
+  }
+
+  // Increment attempts but don't mark as verified
+  otpRecord.attempts += 1;
+  await otpRecord.save();
+
+  return { success: true, message: 'OTP is valid' };
+};
+
+// Static method to verify OTP for final use (checks if already verified)
+OTPSchema.statics.verifyOTPForFinalUse = async function(email, otpCode, purpose) {
+  const otpRecord = await this.findOne({
+    email,
+    otp: otpCode,
+    purpose,
+    verified: true  // Must be already verified
+  });
+
+  if (!otpRecord) {
+    return { success: false, message: 'Invalid or expired OTP' };
+  }
+
+  if (otpRecord.isExpired()) {
+    await otpRecord.deleteOne();
+    return { success: false, message: 'OTP has expired' };
+  }
+
+  return { success: true, message: 'OTP verified for final use' };
 };
 
 module.exports = mongoose.model('OTP', OTPSchema);
