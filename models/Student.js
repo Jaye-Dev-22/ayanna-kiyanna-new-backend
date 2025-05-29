@@ -96,7 +96,16 @@ const StudentSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Class'
     }],
-    default: []
+    default: [],
+    validate: {
+      validator: function(classes) {
+        // Check for duplicates
+        const classIds = classes.map(id => id.toString());
+        const uniqueIds = [...new Set(classIds)];
+        return classIds.length === uniqueIds.length;
+      },
+      message: 'this Student already enrolled in this class'
+    }
   },
 
   // Student Credentials

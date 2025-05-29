@@ -85,7 +85,16 @@ const ClassSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Student'
     }],
-    default: []
+    default: [],
+    validate: {
+      validator: function(students) {
+        // Check for duplicates
+        const studentIds = students.map(id => id.toString());
+        const uniqueIds = [...new Set(studentIds)];
+        return studentIds.length === uniqueIds.length;
+      },
+      message: 'this Student already student this class'
+    }
   },
   createdAt: {
     type: Date,
