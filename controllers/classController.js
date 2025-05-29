@@ -1,5 +1,6 @@
 const Class = require('../models/Class');
 const User = require('../models/User');
+const Student = require('../models/Student');
 const { validationResult } = require('express-validator');
 
 // Get all classes
@@ -49,13 +50,19 @@ exports.getClassById = async (req, res) => {
   try {
     const classItem = await Class.findById(req.params.id)
       .populate('createdBy', 'fullName email')
-      .populate('enrolledStudents', 'fullName email');
+      .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
+      .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
 
     if (!classItem) {
       return res.status(404).json({ message: 'Class not found' });
     }
 
-    res.json(classItem);
+    // Add calculated fields
+    const classObj = classItem.toObject();
+    classObj.enrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
+    classObj.availableSpots = classItem.capacity - classObj.enrolledCount;
+
+    res.json(classObj);
   } catch (err) {
     console.error(err.message);
     if (err.kind === 'ObjectId') {
@@ -468,5 +475,137 @@ exports.cleanAndResetAvailableSpots = async (req, res) => {
     } else {
       throw error;
     }
+  }
+};
+
+// Add monitor to class
+exports.addMonitor = async (req, res) => {
+  try {
+    const { studentId } = req.body;
+    const classId = req.params.id;
+
+    const classItem = await Class.findById(classId);
+    if (!classItem) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Check if student is enrolled in this class
+    if (!classItem.enrolledStudents.includes(studentId)) {
+      return res.status(400).json({ message: 'Student must be enrolled in this class to become a monitor' });
+    }
+
+    // Check if student is already a monitor
+    if (classItem.monitors.includes(studentId)) {
+      return res.status(400).json({ message: 'Student is already a monitor for this class' });
+    }
+
+    // Check monitor limit
+    if (classItem.monitors.length >= 5) {
+      return res.status(400).json({ message: 'Maximum 5 monitors allowed per class' });
+    }
+
+    classItem.monitors.push(studentId);
+    await classItem.save();
+
+    const updatedClass = await Class.findById(classId)
+      .populate('createdBy', 'fullName email')
+      .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
+      .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
+
+    res.json({
+      message: 'Monitor added successfully',
+      class: updatedClass
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Remove monitor from class
+exports.removeMonitor = async (req, res) => {
+  try {
+    const { studentId } = req.body;
+    const classId = req.params.id;
+
+    const classItem = await Class.findById(classId);
+    if (!classItem) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    // Remove student from monitors list
+    classItem.monitors = classItem.monitors.filter(
+      id => id.toString() !== studentId
+    );
+
+    await classItem.save();
+
+    const updatedClass = await Class.findById(classId)
+      .populate('createdBy', 'fullName email')
+      .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
+      .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
+
+    res.json({
+      message: 'Monitor removed successfully',
+      class: updatedClass
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get enrolled students for a class (with search)
+exports.getEnrolledStudents = async (req, res) => {
+  try {
+    const classId = req.params.id;
+    const { search } = req.query;
+
+    const classItem = await Class.findById(classId)
+      .populate({
+        path: 'enrolledStudents',
+        select: 'studentId firstName lastName fullName email profilePicture selectedGrade contactNumber whatsappNumber school status',
+        options: { virtuals: true }
+      });
+
+    if (!classItem) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    let students = classItem.enrolledStudents || [];
+
+    // Apply search filter if provided
+    if (search && search.trim()) {
+      const searchTerm = search.trim().toLowerCase();
+      students = students.filter(student =>
+        student.studentId.toLowerCase().includes(searchTerm) ||
+        student.firstName.toLowerCase().includes(searchTerm) ||
+        student.lastName.toLowerCase().includes(searchTerm) ||
+        (student.fullName && student.fullName.toLowerCase().includes(searchTerm))
+      );
+    }
+
+    res.json({
+      students,
+      total: students.length,
+      classInfo: {
+        _id: classItem._id,
+        grade: classItem.grade,
+        category: classItem.category,
+        capacity: classItem.capacity,
+        enrolledCount: classItem.enrolledStudents ? classItem.enrolledStudents.length : 0
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };

@@ -96,6 +96,30 @@ const ClassSchema = new mongoose.Schema({
       message: 'this Student already student this class'
     }
   },
+  monitors: {
+    type: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Student'
+    }],
+    default: [],
+    validate: [
+      {
+        validator: function(monitors) {
+          return monitors.length <= 5;
+        },
+        message: 'Maximum 5 monitors allowed per class'
+      },
+      {
+        validator: function(monitors) {
+          // Check for duplicates
+          const monitorIds = monitors.map(id => id.toString());
+          const uniqueIds = [...new Set(monitorIds)];
+          return monitorIds.length === uniqueIds.length;
+        },
+        message: 'Duplicate monitors not allowed'
+      }
+    ]
+  },
   createdAt: {
     type: Date,
     default: Date.now
