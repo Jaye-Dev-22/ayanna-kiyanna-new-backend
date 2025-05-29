@@ -12,7 +12,10 @@ const {
   getMe,
   firebaseGoogleAuth,
   sendEmailOTP,
-  verifyEmailOTP
+  verifyEmailOTP,
+  sendPasswordResetOTP,
+  verifyPasswordResetOTP,
+  resetUserPassword
 } = require("../controllers/authController");
 
 // Auth routes
@@ -56,5 +59,42 @@ router.post(
 
 router.get("/me", auth, getMe);
 router.post("/firebase-google", firebaseGoogleAuth);
+
+// Password Reset Routes (Public - no auth required)
+// @route   POST /api/auth/forgot-password
+// @desc    Send password reset OTP to email
+// @access  Public
+router.post(
+  "/forgot-password",
+  [
+    check("email", "Please include a valid email").isEmail()
+  ],
+  sendPasswordResetOTP
+);
+
+// @route   POST /api/auth/verify-reset-otp
+// @desc    Verify password reset OTP
+// @access  Public
+router.post(
+  "/verify-reset-otp",
+  [
+    check("email", "Please include a valid email").isEmail(),
+    check("otp", "OTP is required").isLength({ min: 6, max: 6 })
+  ],
+  verifyPasswordResetOTP
+);
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset user password with verified OTP
+// @access  Public
+router.post(
+  "/reset-password",
+  [
+    check("email", "Please include a valid email").isEmail(),
+    check("otp", "OTP is required").isLength({ min: 6, max: 6 }),
+    check("newPassword", "Please enter a password with 6+ characters").isLength({ min: 6 })
+  ],
+  resetUserPassword
+);
 
 module.exports = router;

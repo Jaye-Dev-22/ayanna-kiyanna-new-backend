@@ -4,6 +4,7 @@ const admin = require('firebase-admin');
 const jwt = require('jsonwebtoken');
 const config = require('config');
 const { OAuth2Client } = require('google-auth-library');
+const { validationResult } = require('express-validator');
 const emailService = require('../services/emailService');
 
 // Initialize Firebase Admin
@@ -246,5 +247,114 @@ exports.firebaseGoogleAuth = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
+  }
+};
+
+// Send password reset OTP
+exports.sendPasswordResetOTP = async (req, res) => {
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email } = req.body;
+
+  try {
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        message: 'You are not in our User database. Please Sign Up first.'
+      });
+    }
+
+    // Generate and save OTP for password reset
+    const otpCode = await OTP.createOTP(email, 'password_reset');
+
+    // Send password reset OTP email
+    const emailResult = await emailService.sendPasswordResetOTPEmail(email, otpCode, user.fullName);
+
+    if (!emailResult.success) {
+      return res.status(500).json({ message: 'Failed to send password reset email' });
+    }
+
+    res.json({
+      message: 'Password reset code sent to your email',
+      email: email
+    });
+  } catch (err) {
+    console.error('Error in sendPasswordResetOTP:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Verify password reset OTP
+exports.verifyPasswordResetOTP = async (req, res) => {
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email, otp } = req.body;
+
+  try {
+    // Verify OTP
+    const verificationResult = await OTP.verifyOTP(email, otp, 'password_reset');
+
+    if (!verificationResult.success) {
+      return res.status(400).json({ message: verificationResult.message });
+    }
+
+    res.json({
+      message: 'OTP verified successfully. You can now reset your password.',
+      verified: true
+    });
+  } catch (err) {
+    console.error('Error in verifyPasswordResetOTP:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Reset user password
+exports.resetUserPassword = async (req, res) => {
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email, otp, newPassword } = req.body;
+
+  try {
+    // Verify OTP one more time
+    const verificationResult = await OTP.verifyOTP(email, otp, 'password_reset');
+    if (!verificationResult.success) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update password
+    user.password = newPassword; // Will be hashed by pre-save hook
+    await user.save();
+
+    // Clean up used OTP
+    await OTP.deleteMany({ email, purpose: 'password_reset' });
+
+    // Send confirmation email
+    await emailService.sendPasswordResetConfirmationEmail(email, user.fullName);
+
+    res.json({
+      message: 'Password reset successfully. You can now login with your new password.'
+    });
+  } catch (err) {
+    console.error('Error in resetUserPassword:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
