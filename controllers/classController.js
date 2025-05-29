@@ -48,10 +48,55 @@ exports.getAllClasses = async (req, res) => {
 // Get class by ID
 exports.getClassById = async (req, res) => {
   try {
-    const classItem = await Class.findById(req.params.id)
-      .populate('createdBy', 'fullName email')
-      .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
-      .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
+    // Get user role from token
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isAdmin = user.role === 'admin' || user.role === 'moderator';
+    const isStudent = user.role === 'student';
+
+    // For students, check if they are enrolled in this class
+    if (isStudent) {
+      const student = await Student.findOne({ userId: req.user.id });
+      if (!student) {
+        return res.status(404).json({ message: 'Student profile not found' });
+      }
+
+      // Check if student is enrolled in this class
+      const classItem = await Class.findById(req.params.id);
+      if (!classItem) {
+        return res.status(404).json({ message: 'Class not found' });
+      }
+
+      const isEnrolled = classItem.enrolledStudents.some(
+        studentId => studentId.toString() === student._id.toString()
+      );
+
+      if (!isEnrolled) {
+        return res.status(403).json({ message: 'Access denied. You are not enrolled in this class.' });
+      }
+    }
+
+    // Build population query based on user role
+    let populateQuery = Class.findById(req.params.id)
+      .populate('createdBy', 'fullName email');
+
+    if (isAdmin) {
+      // Admin gets full access to all data
+      populateQuery = populateQuery
+        .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
+        .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
+    } else if (isStudent) {
+      // Students get limited access - only basic class info and monitors
+      populateQuery = populateQuery
+        .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
+    }
+
+    const classItem = await populateQuery;
 
     if (!classItem) {
       return res.status(404).json({ message: 'Class not found' });
@@ -61,6 +106,11 @@ exports.getClassById = async (req, res) => {
     const classObj = classItem.toObject();
     classObj.enrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
     classObj.availableSpots = classItem.capacity - classObj.enrolledCount;
+
+    // For students, remove sensitive enrolled students data
+    if (isStudent) {
+      classObj.enrolledStudents = undefined;
+    }
 
     res.json(classObj);
   } catch (err) {
@@ -565,6 +615,44 @@ exports.getEnrolledStudents = async (req, res) => {
   try {
     const classId = req.params.id;
     const { search } = req.query;
+
+    // Get user role from token
+    const User = require('../models/User');
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isAdmin = user.role === 'admin' || user.role === 'moderator';
+    const isStudent = user.role === 'student';
+
+    // For students, check if they are enrolled in this class
+    if (isStudent) {
+      const student = await Student.findOne({ userId: req.user.id });
+      if (!student) {
+        return res.status(404).json({ message: 'Student profile not found' });
+      }
+
+      // Check if student is enrolled in this class
+      const classItem = await Class.findById(classId);
+      if (!classItem) {
+        return res.status(404).json({ message: 'Class not found' });
+      }
+
+      const isEnrolled = classItem.enrolledStudents.some(
+        studentId => studentId.toString() === student._id.toString()
+      );
+
+      if (!isEnrolled) {
+        return res.status(403).json({ message: 'Access denied. You are not enrolled in this class.' });
+      }
+    }
+
+    // Only admins can view detailed student information
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Access denied. Admin privileges required to view student details.' });
+    }
 
     const classItem = await Class.findById(classId)
       .populate({

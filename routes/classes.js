@@ -77,8 +77,8 @@ router.get('/venues', adminAuth, getAvailableVenues);
 
 // @route   GET /api/classes/:id
 // @desc    Get class by ID
-// @access  Private (Admin/Moderator)
-router.get('/:id', adminAuth, getClassById);
+// @access  Private (Admin/Moderator or Student)
+router.get('/:id', auth, getClassById);
 
 // @route   POST /api/classes
 // @desc    Create new class
