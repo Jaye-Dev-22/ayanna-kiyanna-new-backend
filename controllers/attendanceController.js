@@ -47,8 +47,9 @@ const createAttendanceSheet = async (req, res) => {
       });
     }
 
-    // Validate monitor permissions
-    if (!monitorPermissions.allMonitors &&
+    // Validate monitor permissions (skip validation if adminOnly is selected)
+    if (!monitorPermissions.adminOnly &&
+        !monitorPermissions.allMonitors &&
         (!monitorPermissions.selectedMonitors || monitorPermissions.selectedMonitors.length === 0)) {
       return res.status(400).json({
         success: false,
@@ -85,7 +86,8 @@ const createAttendanceSheet = async (req, res) => {
       expectedPresentCount,
       monitorPermissions: {
         allMonitors: monitorPermissions.allMonitors || false,
-        selectedMonitors: monitorPermissions.selectedMonitors || []
+        selectedMonitors: monitorPermissions.selectedMonitors || [],
+        adminOnly: monitorPermissions.adminOnly || false
       },
       studentAttendance,
       notes,
@@ -96,6 +98,7 @@ const createAttendanceSheet = async (req, res) => {
     console.log('Creating attendance with monitor permissions:', {
       allMonitors: monitorPermissions.allMonitors,
       selectedMonitors: monitorPermissions.selectedMonitors,
+      adminOnly: monitorPermissions.adminOnly,
       classMonitors: classData.monitors.map(m => m._id.toString())
     });
 
@@ -334,14 +337,16 @@ const updateAttendanceSheet = async (req, res) => {
     if (monitorPermissions) {
       attendance.monitorPermissions = {
         allMonitors: monitorPermissions.allMonitors || false,
-        selectedMonitors: monitorPermissions.selectedMonitors || []
+        selectedMonitors: monitorPermissions.selectedMonitors || [],
+        adminOnly: monitorPermissions.adminOnly || false
       };
 
       // Debug logging for monitor permissions update
       console.log('Updating attendance with monitor permissions:', {
         attendanceId: attendance._id,
         allMonitors: monitorPermissions.allMonitors,
-        selectedMonitors: monitorPermissions.selectedMonitors
+        selectedMonitors: monitorPermissions.selectedMonitors,
+        adminOnly: monitorPermissions.adminOnly
       });
     }
 
@@ -463,7 +468,10 @@ const updateAttendanceByMonitor = async (req, res) => {
 
     // Check if monitor has permission
     let hasPermission = false;
-    if (attendance.monitorPermissions.allMonitors) {
+    if (attendance.monitorPermissions.adminOnly) {
+      // If adminOnly is true, no monitors have permission
+      hasPermission = false;
+    } else if (attendance.monitorPermissions.allMonitors) {
       hasPermission = true;
     } else {
       hasPermission = attendance.monitorPermissions.selectedMonitors.some(
@@ -478,6 +486,7 @@ const updateAttendanceByMonitor = async (req, res) => {
     // Debug logging
     console.log('Monitor permission debug:', {
       monitorId: monitor._id.toString(),
+      adminOnly: attendance.monitorPermissions.adminOnly,
       allMonitors: attendance.monitorPermissions.allMonitors,
       selectedMonitors: attendance.monitorPermissions.selectedMonitors.map(monitor => ({
         id: monitor._id ? monitor._id.toString() : monitor.toString(),
@@ -490,9 +499,13 @@ const updateAttendanceByMonitor = async (req, res) => {
     });
 
     if (!hasPermission) {
+      const message = attendance.monitorPermissions.adminOnly
+        ? 'ඔබට මෙම පත්‍රිකාව යාවත්කාලීන කිරීමට අවසර නැත - පරිපාලක පමණක් අවසර ලබා ඇත'
+        : 'You do not have permission to update this attendance sheet';
+
       return res.status(403).json({
         success: false,
-        message: 'You do not have permission to update this attendance sheet'
+        message
       });
     }
 
