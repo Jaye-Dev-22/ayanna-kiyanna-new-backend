@@ -615,11 +615,26 @@ const getAttendanceAnalytics = async (req, res) => {
         }
       },
       {
+        $addFields: {
+          // Calculate total students for each sheet
+          totalStudentsCount: { $size: { $ifNull: ['$studentAttendance', []] } },
+          // Calculate present students for each sheet
+          presentStudentsCount: {
+            $size: {
+              $filter: {
+                input: { $ifNull: ['$studentAttendance', []] },
+                cond: { $eq: ['$$this.status', 'Present'] }
+              }
+            }
+          }
+        }
+      },
+      {
         $group: {
           _id: { $month: '$date' },
           totalSheets: { $sum: 1 },
-          totalStudents: { $sum: '$totalStudents' },
-          totalPresent: { $sum: '$actualPresentCount' }
+          totalStudents: { $sum: '$totalStudentsCount' },
+          totalPresent: { $sum: '$presentStudentsCount' }
         }
       },
       {
@@ -634,6 +649,46 @@ const getAttendanceAnalytics = async (req, res) => {
           date: {
             $gte: new Date(year, 0, 1),
             $lt: new Date(parseInt(year) + 1, 0, 1)
+          }
+        }
+      },
+      {
+        $addFields: {
+          // Calculate total students for each sheet
+          totalStudentsCount: { $size: { $ifNull: ['$studentAttendance', []] } },
+          // Calculate present students for each sheet
+          presentStudentsCount: {
+            $size: {
+              $filter: {
+                input: { $ifNull: ['$studentAttendance', []] },
+                cond: { $eq: ['$$this.status', 'Present'] }
+              }
+            }
+          },
+          // Calculate attendance percentage for each sheet
+          attendancePercentage: {
+            $cond: {
+              if: { $gt: [{ $size: { $ifNull: ['$studentAttendance', []] } }, 0] },
+              then: {
+                $multiply: [
+                  {
+                    $divide: [
+                      {
+                        $size: {
+                          $filter: {
+                            input: { $ifNull: ['$studentAttendance', []] },
+                            cond: { $eq: ['$$this.status', 'Present'] }
+                          }
+                        }
+                      },
+                      { $size: { $ifNull: ['$studentAttendance', []] } }
+                    ]
+                  },
+                  100
+                ]
+              },
+              else: 0
+            }
           }
         }
       },
@@ -653,6 +708,8 @@ const getAttendanceAnalytics = async (req, res) => {
           _id: '$classId',
           className: { $first: { $concat: ['$classInfo.grade', ' - ', '$classInfo.category'] } },
           totalSheets: { $sum: 1 },
+          totalStudents: { $sum: '$totalStudentsCount' },
+          totalPresent: { $sum: '$presentStudentsCount' },
           averageAttendance: { $avg: '$attendancePercentage' }
         }
       },
