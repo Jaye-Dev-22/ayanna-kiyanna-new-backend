@@ -7,28 +7,28 @@ const AttendanceSchema = new mongoose.Schema({
     ref: 'Class',
     required: true
   },
-  
+
   // Attendance date
   date: {
     type: Date,
     required: true,
     default: Date.now
   },
-  
+
   // Admin who created the attendance sheet
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
-  
+
   // Admin's expected present count
   expectedPresentCount: {
     type: Number,
     required: true,
     min: [0, 'Expected present count cannot be negative']
   },
-  
+
   // Monitor permissions
   monitorPermissions: {
     // Whether all monitors have permission
@@ -41,9 +41,14 @@ const AttendanceSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Student'
     }],
+    // Whether only admin can mark attendance
+    adminOnly: {
+      type: Boolean,
+      default: false
+    },
     default: []
   },
-  
+
   // Student attendance records
   studentAttendance: [{
     studentId: {
@@ -64,14 +69,14 @@ const AttendanceSchema = new mongoose.Schema({
       type: Date
     }
   }],
-  
+
   // Attendance sheet status
   status: {
     type: String,
     enum: ['Draft', 'Completed', 'Updated'],
     default: 'Draft'
   },
-  
+
   // Monitor update tracking
   monitorUpdate: {
     // Which monitor updated (if any)
@@ -94,14 +99,14 @@ const AttendanceSchema = new mongoose.Schema({
       default: false
     }
   },
-  
+
   // Admin notes
   notes: {
     type: String,
     trim: true,
     maxlength: [500, 'Notes cannot exceed 500 characters']
   },
-  
+
   // Timestamps
   createdAt: {
     type: Date,
@@ -121,7 +126,7 @@ AttendanceSchema.pre('save', function(next) {
 
 // Virtual for actual present count
 AttendanceSchema.virtual('actualPresentCount').get(function() {
-  return this.studentAttendance ? 
+  return this.studentAttendance ?
     this.studentAttendance.filter(record => record.status === 'Present').length : 0;
 });
 
@@ -139,18 +144,23 @@ AttendanceSchema.virtual('attendancePercentage').get(function() {
 
 // Method to check if a monitor can update attendance
 AttendanceSchema.methods.canMonitorUpdate = function(monitorId) {
+  // Check if only admin can mark attendance
+  if (this.monitorPermissions.adminOnly) {
+    return false;
+  }
+
   // Check if monitor update is already locked by another monitor
-  if (this.monitorUpdate.isLocked && 
-      this.monitorUpdate.updatedBy && 
+  if (this.monitorUpdate.isLocked &&
+      this.monitorUpdate.updatedBy &&
       this.monitorUpdate.updatedBy.toString() !== monitorId.toString()) {
     return false;
   }
-  
+
   // Check if monitor has permission
   if (this.monitorPermissions.allMonitors) {
     return true;
   }
-  
+
   return this.monitorPermissions.selectedMonitors.some(
     monitor => monitor.toString() === monitorId.toString()
   );
@@ -176,9 +186,9 @@ AttendanceSchema.index({ date: 1 });
 AttendanceSchema.index({ status: 1 });
 
 // Compound index for monthly queries
-AttendanceSchema.index({ 
-  classId: 1, 
-  date: 1 
+AttendanceSchema.index({
+  classId: 1,
+  date: 1
 });
 
 module.exports = mongoose.model('Attendance', AttendanceSchema);
