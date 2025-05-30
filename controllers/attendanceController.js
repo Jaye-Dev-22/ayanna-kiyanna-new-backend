@@ -415,14 +415,16 @@ const updateAttendanceByMonitor = async (req, res) => {
       });
     }
 
-    // Find attendance sheet with class data
-    const attendance = await Attendance.findById(id).populate({
-      path: 'classId',
-      populate: {
-        path: 'monitors',
-        select: 'firstName lastName studentId'
-      }
-    });
+    // Find attendance sheet with class data and populate selectedMonitors
+    const attendance = await Attendance.findById(id)
+      .populate({
+        path: 'classId',
+        populate: {
+          path: 'monitors',
+          select: 'firstName lastName studentId'
+        }
+      })
+      .populate('monitorPermissions.selectedMonitors', 'firstName lastName studentId');
     if (!attendance) {
       return res.status(404).json({
         success: false,
@@ -465,7 +467,11 @@ const updateAttendanceByMonitor = async (req, res) => {
       hasPermission = true;
     } else {
       hasPermission = attendance.monitorPermissions.selectedMonitors.some(
-        monitorId => monitorId.toString() === monitor._id.toString()
+        selectedMonitor => {
+          // Handle both populated and non-populated selectedMonitors
+          const selectedMonitorId = selectedMonitor._id ? selectedMonitor._id.toString() : selectedMonitor.toString();
+          return selectedMonitorId === monitor._id.toString();
+        }
       );
     }
 
@@ -473,7 +479,13 @@ const updateAttendanceByMonitor = async (req, res) => {
     console.log('Monitor permission debug:', {
       monitorId: monitor._id.toString(),
       allMonitors: attendance.monitorPermissions.allMonitors,
-      selectedMonitors: attendance.monitorPermissions.selectedMonitors.map(id => id.toString()),
+      selectedMonitors: attendance.monitorPermissions.selectedMonitors.map(monitor => ({
+        id: monitor._id ? monitor._id.toString() : monitor.toString(),
+        name: monitor.firstName ? `${monitor.firstName} ${monitor.lastName}` : 'Unknown'
+      })),
+      selectedMonitorIds: attendance.monitorPermissions.selectedMonitors.map(monitor =>
+        monitor._id ? monitor._id.toString() : monitor.toString()
+      ),
       hasPermission
     });
 
