@@ -29,16 +29,30 @@ const createAttendanceSheet = async (req, res) => {
       });
     }
 
-    // Check if attendance sheet already exists for today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Check if attendance sheet already exists for today (same date, regardless of time)
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    console.log('Date check debug:', {
+      now: now.toISOString(),
+      todayStart: todayStart.toISOString(),
+      todayEnd: todayEnd.toISOString(),
+      classId
+    });
 
     const existingAttendance = await Attendance.findOne({
       classId,
-      date: { $gte: today, $lt: tomorrow }
+      date: { $gte: todayStart, $lte: todayEnd }
     });
+
+    if (existingAttendance) {
+      console.log('Found existing attendance:', {
+        id: existingAttendance._id,
+        date: existingAttendance.date.toISOString(),
+        classId: existingAttendance.classId
+      });
+    }
 
     if (existingAttendance) {
       return res.status(400).json({
@@ -81,7 +95,7 @@ const createAttendanceSheet = async (req, res) => {
     // Create attendance sheet
     const attendance = new Attendance({
       classId,
-      date: new Date(),
+      date: todayStart, // Use the start of today to ensure consistent date comparison
       createdBy: req.user.id,
       expectedPresentCount,
       monitorPermissions: {
