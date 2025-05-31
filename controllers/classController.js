@@ -1,6 +1,8 @@
 const Class = require('../models/Class');
 const User = require('../models/User');
 const Student = require('../models/Student');
+const Attendance = require('../models/Attendance');
+const ClassRequest = require('../models/ClassRequest');
 const { validationResult } = require('express-validator');
 
 // Get all classes
@@ -292,15 +294,45 @@ exports.updateClass = async (req, res) => {
 // Delete class
 exports.deleteClass = async (req, res) => {
   try {
-    const classItem = await Class.findById(req.params.id);
+    const classId = req.params.id;
+
+    // Find the class to be deleted
+    const classItem = await Class.findById(classId);
     if (!classItem) {
       return res.status(404).json({ message: 'Class not found' });
     }
 
-    await Class.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Class deleted successfully' });
+    console.log(`Deleting class ${classId} with ${classItem.enrolledStudents.length} enrolled students`);
+
+    // Remove this class from all students' enrolledClasses arrays
+    const updateResult = await Student.updateMany(
+      { enrolledClasses: classId },
+      { $pull: { enrolledClasses: classId } }
+    );
+
+    console.log(`Removed class ${classId} from ${updateResult.modifiedCount} students' enrolledClasses`);
+
+    // Also remove any related attendance sheets
+    const attendanceDeleteResult = await Attendance.deleteMany({ classId: classId });
+    console.log(`Deleted ${attendanceDeleteResult.deletedCount} attendance sheets for class ${classId}`);
+
+    // Also remove any related class requests
+    const classRequestDeleteResult = await ClassRequest.deleteMany({ class: classId });
+    console.log(`Deleted ${classRequestDeleteResult.deletedCount} class requests for class ${classId}`);
+
+    // Finally, delete the class itself
+    await Class.findByIdAndDelete(classId);
+
+    res.json({
+      message: 'Class deleted successfully',
+      details: {
+        studentsUpdated: updateResult.modifiedCount,
+        attendanceSheetsDeleted: attendanceDeleteResult.deletedCount,
+        classRequestsDeleted: classRequestDeleteResult.deletedCount
+      }
+    });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error deleting class:', err.message);
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ message: 'Class not found' });
     }
