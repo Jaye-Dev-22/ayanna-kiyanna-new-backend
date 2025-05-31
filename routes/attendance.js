@@ -14,7 +14,8 @@ const {
   updateAttendanceSheet,
   updateAttendanceByMonitor,
   deleteAttendanceSheet,
-  getAttendanceAnalytics
+  getAttendanceAnalytics,
+  getStudentAttendanceStats
 } = require('../controllers/attendanceController');
 
 // Validation rules for attendance creation
@@ -93,6 +94,11 @@ router.post('/', [adminAuth, ...attendanceValidation], createAttendanceSheet);
 // @desc    Get attendance analytics for admin dashboard
 // @access  Private (Admin/Moderator)
 router.get('/analytics', adminAuth, getAttendanceAnalytics);
+
+// @route   GET /api/attendance/student-stats/:studentId/:classId
+// @desc    Get student's personal attendance statistics for a specific class and month
+// @access  Private (Student/Admin/Moderator)
+router.get('/student-stats/:studentId/:classId', auth, getStudentAttendanceStats);
 
 // @route   GET /api/attendance/class/:classId
 // @desc    Get attendance sheets for a class

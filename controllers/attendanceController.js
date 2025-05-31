@@ -793,6 +793,84 @@ const getAttendanceAnalytics = async (req, res) => {
   }
 };
 
+// @desc    Get student's personal attendance statistics for a specific class and month
+// @route   GET /api/attendance/student-stats/:studentId/:classId
+// @access  Private (Student/Admin/Moderator)
+const getStudentAttendanceStats = async (req, res) => {
+  try {
+    const { studentId, classId } = req.params;
+    const { month, year } = req.query;
+    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+
+    // Date range for the selected month
+    const startDate = new Date(currentYear, currentMonth - 1, 1);
+    const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+
+    console.log('Fetching student attendance stats:', {
+      studentId,
+      classId,
+      month: currentMonth,
+      year: currentYear,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+
+    // Get all attendance sheets for the class in the selected month
+    const attendanceSheets = await Attendance.find({
+      classId,
+      date: { $gte: startDate, $lte: endDate }
+    }).sort({ date: -1 });
+
+    let totalSheets = 0;
+    let presentCount = 0;
+    let absentCount = 0;
+
+    // Check student's attendance in each sheet
+    attendanceSheets.forEach(sheet => {
+      const studentAttendance = sheet.studentAttendance.find(
+        attendance => attendance.studentId.toString() === studentId
+      );
+
+      if (studentAttendance) {
+        totalSheets++;
+        if (studentAttendance.status === 'Present') {
+          presentCount++;
+        } else {
+          absentCount++;
+        }
+      }
+    });
+
+    // Calculate attendance percentage
+    const attendancePercentage = totalSheets > 0 ? Math.round((presentCount / totalSheets) * 100) : 0;
+
+    const stats = {
+      totalSheets,
+      presentCount,
+      absentCount,
+      attendancePercentage,
+      month: currentMonth,
+      year: currentYear,
+      classId
+    };
+
+    console.log('Student attendance stats calculated:', stats);
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Error fetching student attendance stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching student attendance statistics'
+    });
+  }
+};
+
 module.exports = {
   createAttendanceSheet,
   getAttendanceSheet,
@@ -800,5 +878,6 @@ module.exports = {
   updateAttendanceSheet,
   updateAttendanceByMonitor,
   deleteAttendanceSheet,
-  getAttendanceAnalytics
+  getAttendanceAnalytics,
+  getStudentAttendanceStats
 };
