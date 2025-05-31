@@ -71,6 +71,22 @@ const createAttendanceSheet = async (req, res) => {
       });
     }
 
+    // Check if "Give permission to all monitors" is selected but class has no monitors
+    if (monitorPermissions.allMonitors && (!classData.monitors || classData.monitors.length === 0)) {
+      console.log('Validation failed: "Give permission to all monitors" selected but class has no monitors', {
+        classId,
+        className: `${classData.grade} - ${classData.category}`,
+        monitorsCount: classData.monitors ? classData.monitors.length : 0,
+        allMonitors: monitorPermissions.allMonitors
+      });
+
+      return res.status(400).json({
+        success: false,
+        message: 'මෙම පන්තියට නිරීක්ෂකයින් නොමැත. කරුණාකර පළමුව නිරීක්ෂකයින් එක් කරන්න හෝ "මට පමණක් අවසර ලැබෙමි" තෝරන්න.',
+        messageEn: 'This class has no monitors. Please add monitors first or select "Admin Only" permission.'
+      });
+    }
+
     if (monitorPermissions.selectedMonitors && monitorPermissions.selectedMonitors.length > 0) {
       // Check if selected monitors are actually monitors of this class
       const validMonitors = classData.monitors.map(monitor => monitor.toString());
@@ -349,6 +365,33 @@ const updateAttendanceSheet = async (req, res) => {
     }
 
     if (monitorPermissions) {
+      // If trying to set "Give permission to all monitors", check if class has monitors
+      if (monitorPermissions.allMonitors) {
+        // Get class data to check monitors
+        const classData = await Class.findById(attendance.classId);
+        if (!classData) {
+          return res.status(404).json({
+            success: false,
+            message: 'Class not found'
+          });
+        }
+
+        if (!classData.monitors || classData.monitors.length === 0) {
+          console.log('Update validation failed: "Give permission to all monitors" selected but class has no monitors', {
+            classId: attendance.classId,
+            className: `${classData.grade} - ${classData.category}`,
+            monitorsCount: classData.monitors ? classData.monitors.length : 0,
+            allMonitors: monitorPermissions.allMonitors
+          });
+
+          return res.status(400).json({
+            success: false,
+            message: 'මෙම පන්තියට නිරීක්ෂකයින් නොමැත. කරුණාකර පළමුව නිරීක්ෂකයින් එක් කරන්න හෝ "මට පමණක් අවසර ලැබෙමි" තෝරන්න.',
+            messageEn: 'This class has no monitors. Please add monitors first or select "Admin Only" permission.'
+          });
+        }
+      }
+
       attendance.monitorPermissions = {
         allMonitors: monitorPermissions.allMonitors || false,
         selectedMonitors: monitorPermissions.selectedMonitors || [],
