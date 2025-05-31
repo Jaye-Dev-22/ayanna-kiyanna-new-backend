@@ -598,12 +598,14 @@ exports.addMonitor = async (req, res) => {
     // Send notification to the student who was made a monitor
     try {
       const notification = new Notification({
-        userId: student.userId,
+        recipient: student.userId,
         type: 'monitor_added',
         title: 'ඔබ පන්ති නිරීක්ෂකයෙකු ලෙස තෝරාගෙන ඇත',
         message: `ඔබ ${classItem.grade} - ${classItem.category} පන්තියේ නිරීක්ෂකයෙකු ලෙස තෝරාගෙන ඇත. ඔබට දැන් පැමිණීම් කළමනාකරණය සඳහා විශේෂ අවසර ලැබී ඇත.`,
-        relatedId: classId,
-        relatedModel: 'Class'
+        data: {
+          studentId: studentId,
+          classId: classId
+        }
       });
       await notification.save();
       console.log(`Monitor added notification sent to student ${student.studentId}`);
@@ -652,12 +654,14 @@ exports.removeMonitor = async (req, res) => {
     if (student) {
       try {
         const notification = new Notification({
-          userId: student.userId,
+          recipient: student.userId,
           type: 'monitor_removed',
           title: 'ඔබ පන්ති නිරීක්ෂක තනතුරෙන් ඉවත් කර ඇත',
           message: `ඔබ ${classItem.grade} - ${classItem.category} පන්තියේ නිරීක්ෂක තනතුරෙන් ඉවත් කර ඇත. ඔබගේ පැමිණීම් කළමනාකරණ අවසර අවලංගු කර ඇත.`,
-          relatedId: classId,
-          relatedModel: 'Class'
+          data: {
+            studentId: studentId,
+            classId: classId
+          }
         });
         await notification.save();
         console.log(`Monitor removed notification sent to student ${student.studentId}`);
