@@ -18,7 +18,9 @@ const NotificationSchema = new mongoose.Schema({
       'admin_message',
       'general',
       'account_deletion',
-      'status_change'
+      'status_change',
+      'monitor_added',
+      'monitor_removed'
     ],
     required: true
   },

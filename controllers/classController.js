@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Student = require('../models/Student');
 const Attendance = require('../models/Attendance');
 const ClassRequest = require('../models/ClassRequest');
+const Notification = require('../models/Notification');
 const { validationResult } = require('express-validator');
 
 // Get all classes
@@ -594,6 +595,23 @@ exports.addMonitor = async (req, res) => {
     classItem.monitors.push(studentId);
     await classItem.save();
 
+    // Send notification to the student who was made a monitor
+    try {
+      const notification = new Notification({
+        userId: student.userId,
+        type: 'monitor_added',
+        title: 'ඔබ පන්ති නිරීක්ෂකයෙකු ලෙස තෝරාගෙන ඇත',
+        message: `ඔබ ${classItem.grade} - ${classItem.category} පන්තියේ නිරීක්ෂකයෙකු ලෙස තෝරාගෙන ඇත. ඔබට දැන් පැමිණීම් කළමනාකරණය සඳහා විශේෂ අවසර ලැබී ඇත.`,
+        relatedId: classId,
+        relatedModel: 'Class'
+      });
+      await notification.save();
+      console.log(`Monitor added notification sent to student ${student.studentId}`);
+    } catch (notificationError) {
+      console.error('Error sending monitor added notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
+
     const updatedClass = await Class.findById(classId)
       .populate('createdBy', 'fullName email')
       .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
@@ -620,12 +638,34 @@ exports.removeMonitor = async (req, res) => {
       return res.status(404).json({ message: 'Class not found' });
     }
 
+    // Get student info before removing for notification
+    const student = await Student.findById(studentId);
+
     // Remove student from monitors list
     classItem.monitors = classItem.monitors.filter(
       id => id.toString() !== studentId
     );
 
     await classItem.save();
+
+    // Send notification to the student who was removed as monitor
+    if (student) {
+      try {
+        const notification = new Notification({
+          userId: student.userId,
+          type: 'monitor_removed',
+          title: 'ඔබ පන්ති නිරීක්ෂක තනතුරෙන් ඉවත් කර ඇත',
+          message: `ඔබ ${classItem.grade} - ${classItem.category} පන්තියේ නිරීක්ෂක තනතුරෙන් ඉවත් කර ඇත. ඔබගේ පැමිණීම් කළමනාකරණ අවසර අවලංගු කර ඇත.`,
+          relatedId: classId,
+          relatedModel: 'Class'
+        });
+        await notification.save();
+        console.log(`Monitor removed notification sent to student ${student.studentId}`);
+      } catch (notificationError) {
+        console.error('Error sending monitor removed notification:', notificationError);
+        // Don't fail the main operation if notification fails
+      }
+    }
 
     const updatedClass = await Class.findById(classId)
       .populate('createdBy', 'fullName email')
