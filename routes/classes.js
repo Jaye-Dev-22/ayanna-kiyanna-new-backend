@@ -17,6 +17,7 @@ const {
   getAvailableVenues,
   enrollStudent,
   removeStudent,
+  getAvailableStudents,
   cleanAndResetAvailableSpots,
   addMonitor,
   removeMonitor,
@@ -137,6 +138,11 @@ router.post('/:id/remove-monitor', [
 // @desc    Get enrolled students for a class (with search)
 // @access  Private (Admin/Moderator or Student)
 router.get('/:id/students', auth, getEnrolledStudents);
+
+// @route   GET /api/classes/:id/available-students
+// @desc    Get available students for enrollment (not already enrolled in this class)
+// @access  Private (Admin/Moderator)
+router.get('/:id/available-students', adminAuth, getAvailableStudents);
 
 // @route   POST /api/classes/:id/confirm-monitors
 // @desc    Confirm monitors - Check if monitor students are currently enrolled in the class

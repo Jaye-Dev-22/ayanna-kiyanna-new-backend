@@ -373,7 +373,7 @@ exports.getAvailableVenues = async (req, res) => {
   }
 };
 
-// Enroll student in class
+// Enroll student in class (Admin function with bidirectional update)
 exports.enrollStudent = async (req, res) => {
   try {
     const { studentId } = req.body;
@@ -384,12 +384,12 @@ exports.enrollStudent = async (req, res) => {
       return res.status(404).json({ message: 'Class not found' });
     }
 
-    const student = await User.findById(studentId);
+    const student = await Student.findById(studentId);
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Check if student is already enrolled
+    // Check if student is already enrolled in class
     if (classItem.enrolledStudents.includes(studentId)) {
       return res.status(400).json({ message: 'Student already enrolled in this class' });
     }
@@ -399,21 +399,51 @@ exports.enrollStudent = async (req, res) => {
       return res.status(400).json({ message: 'Class is at full capacity' });
     }
 
+    // Add student to class
     classItem.enrolledStudents.push(studentId);
     await classItem.save();
 
+    // Add class to student's enrolledClasses (bidirectional update)
+    if (!student.enrolledClasses.includes(classId)) {
+      student.enrolledClasses.push(classId);
+      await student.save();
+    }
+
+    // Send notification to student about enrollment
+    try {
+      const notification = new Notification({
+        recipient: student.userId,
+        type: 'class_enrollment',
+        title: 'ඔබ නව පන්තියකට ලියාපදිංචි කර ඇත',
+        message: `ඔබ ${classItem.grade} - ${classItem.category} පන්තියට සාර්ථකව ලියාපදිංචි කර ඇත. පන්ති විස්තර සහ කාලසටහන පරීක්ෂා කරන්න.`,
+        data: {
+          studentId: studentId,
+          classId: classId
+        }
+      });
+      await notification.save();
+      console.log(`Enrollment notification sent to student ${student.studentId}`);
+    } catch (notificationError) {
+      console.error('Error sending enrollment notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
+
     const updatedClass = await Class.findById(classId)
       .populate('createdBy', 'fullName email')
-      .populate('enrolledStudents', 'fullName email');
+      .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
+      .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
 
-    res.json(updatedClass);
+    res.json({
+      message: 'Student enrolled successfully',
+      class: updatedClass
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-// Remove student from class
+// Remove student from class (Admin function with bidirectional update)
 exports.removeStudent = async (req, res) => {
   try {
     const { studentId } = req.body;
@@ -424,18 +454,86 @@ exports.removeStudent = async (req, res) => {
       return res.status(404).json({ message: 'Class not found' });
     }
 
-    // Remove student from enrolled list
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Remove student from class enrolled list
     classItem.enrolledStudents = classItem.enrolledStudents.filter(
+      id => id.toString() !== studentId
+    );
+
+    // Also remove from monitors if they are a monitor
+    classItem.monitors = classItem.monitors.filter(
       id => id.toString() !== studentId
     );
 
     await classItem.save();
 
+    // Remove class from student's enrolledClasses (bidirectional update)
+    student.enrolledClasses = student.enrolledClasses.filter(
+      id => id.toString() !== classId
+    );
+    await student.save();
+
+    // Send notification to student about removal
+    try {
+      const notification = new Notification({
+        recipient: student.userId,
+        type: 'class_enrollment',
+        title: 'ඔබ පන්තියකින් ඉවත් කර ඇත',
+        message: `ඔබ ${classItem.grade} - ${classItem.category} පන්තියෙන් ඉවත් කර ඇත. වැඩිදුර විස්තර සඳහා පරිපාලකයා සම්බන්ධ කර ගන්න.`,
+        data: {
+          studentId: studentId,
+          classId: classId
+        }
+      });
+      await notification.save();
+      console.log(`Removal notification sent to student ${student.studentId}`);
+    } catch (notificationError) {
+      console.error('Error sending removal notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
+
     const updatedClass = await Class.findById(classId)
       .populate('createdBy', 'fullName email')
-      .populate('enrolledStudents', 'fullName email');
+      .populate('enrolledStudents', 'studentId firstName lastName fullName email profilePicture selectedGrade')
+      .populate('monitors', 'studentId firstName lastName fullName email profilePicture');
 
-    res.json(updatedClass);
+    res.json({
+      message: 'Student removed successfully',
+      class: updatedClass
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Get available students for enrollment (not already enrolled in this class)
+exports.getAvailableStudents = async (req, res) => {
+  try {
+    const classId = req.params.id;
+
+    const classItem = await Class.findById(classId);
+    if (!classItem) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    // Get all approved students who are not enrolled in this class
+    const availableStudents = await Student.find({
+      status: 'Approved',
+      _id: { $nin: classItem.enrolledStudents }
+    })
+    .select('studentId firstName lastName fullName email profilePicture selectedGrade school contactNumber')
+    .sort({ firstName: 1, lastName: 1 });
+
+    res.json({
+      success: true,
+      students: availableStudents,
+      count: availableStudents.length
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server error', error: err.message });
