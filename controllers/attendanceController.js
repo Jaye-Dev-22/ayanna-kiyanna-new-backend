@@ -291,10 +291,30 @@ const getClassAttendance = async (req, res) => {
       .sort({ date: -1 });
 
     // Filter data based on user role
-    if (user.role === 'student' && studentData) {
+    if (user.role === 'student') {
+      // Additional safety check for studentData
+      if (!studentData) {
+        console.error('Student data not found for user:', {
+          userId: req.user.id,
+          userRole: user.role,
+          classId: classId
+        });
+        return res.status(404).json({
+          success: false,
+          message: 'Student profile not found. Please contact administrator.'
+        });
+      }
+
       // Check if student is a monitor of the class
-      const classData = await Class.findById(classId).populate('monitors');
-      const isMonitor = classData.monitors.some(monitor =>
+      const classDataForMonitorCheck = await Class.findById(classId).populate('monitors');
+      if (!classDataForMonitorCheck) {
+        return res.status(404).json({
+          success: false,
+          message: 'Class not found'
+        });
+      }
+
+      const isMonitor = classDataForMonitorCheck.monitors && classDataForMonitorCheck.monitors.some(monitor =>
         monitor._id.toString() === studentData._id.toString()
       );
 
@@ -305,7 +325,8 @@ const getClassAttendance = async (req, res) => {
         } else {
           // Regular students can only see their own attendance
           const studentAttendance = sheet.studentAttendance.filter(
-            record => record.studentId._id.toString() === studentData._id.toString()
+            record => record.studentId && record.studentId._id &&
+                     record.studentId._id.toString() === studentData._id.toString()
           );
 
           return {
@@ -802,6 +823,24 @@ const getStudentAttendanceStats = async (req, res) => {
     const { month, year } = req.query;
     const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
     const currentYear = year ? parseInt(year) : new Date().getFullYear();
+
+    // Validate student exists
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Validate class exists
+    const classData = await Class.findById(classId);
+    if (!classData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Class not found'
+      });
+    }
 
     // Date range for the selected month
     const startDate = new Date(currentYear, currentMonth - 1, 1);
