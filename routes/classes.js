@@ -22,7 +22,9 @@ const {
   addMonitor,
   removeMonitor,
   getEnrolledStudents,
-  confirmMonitors
+  confirmMonitors,
+  getNormalClasses,
+  bulkEnrollStudents
 } = require('../controllers/classController');
 
 // Validation rules for class creation/update
@@ -67,6 +69,11 @@ const classValidation = [
 // @access  Private (Admin/Moderator)
 router.get('/', adminAuth, getAllClasses);
 
+// @route   GET /api/classes/normal-classes
+// @desc    Get all normal category classes for filtering
+// @access  Private (Admin/Moderator)
+router.get('/normal-classes', adminAuth, getNormalClasses);
+
 // @route   GET /api/classes/grades
 // @desc    Get available grades for dropdown
 // @access  Private (Admin/Moderator)
@@ -76,6 +83,11 @@ router.get('/grades', adminAuth, getAvailableGrades);
 // @desc    Get available venues for dropdown
 // @access  Private (Admin/Moderator)
 router.get('/venues', adminAuth, getAvailableVenues);
+
+// @route   GET /api/classes/clean-and-reset-spots
+// @desc    Clean and reset available spots - Data integrity check
+// @access  Private (Admin/Moderator)
+router.post('/clean-and-reset-spots', adminAuth, cleanAndResetAvailableSpots);
 
 // @route   GET /api/classes/:id
 // @desc    Get class by ID
@@ -113,11 +125,6 @@ router.post('/:id/remove-student', [
   check('studentId', 'Student ID is required').not().isEmpty()
 ], removeStudent);
 
-// @route   POST /api/classes/clean-and-reset-spots
-// @desc    Clean and reset available spots - Data integrity check
-// @access  Private (Admin/Moderator)
-router.post('/clean-and-reset-spots', adminAuth, cleanAndResetAvailableSpots);
-
 // @route   POST /api/classes/:id/add-monitor
 // @desc    Add monitor to class
 // @access  Private (Admin/Moderator)
@@ -148,5 +155,14 @@ router.get('/:id/available-students', adminAuth, getAvailableStudents);
 // @desc    Confirm monitors - Check if monitor students are currently enrolled in the class
 // @access  Private (Admin/Moderator)
 router.post('/:id/confirm-monitors', adminAuth, confirmMonitors);
+
+// @route   POST /api/classes/:id/bulk-enroll
+// @desc    Bulk enroll multiple students in a class
+// @access  Private (Admin/Moderator)
+router.post('/:id/bulk-enroll', [
+  adminAuth,
+  check('studentIds', 'Student IDs array is required').isArray(),
+  check('studentIds.*', 'Each student ID must be a valid MongoDB ObjectId').isMongoId()
+], bulkEnrollStudents);
 
 module.exports = router;

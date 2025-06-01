@@ -511,28 +511,173 @@ exports.removeStudent = async (req, res) => {
   }
 };
 
+// Get normal category classes for filtering
+exports.getNormalClasses = async (req, res) => {
+  try {
+    const classes = await Class.find({
+      type: 'Normal',
+      isActive: true
+    })
+      .select('_id grade category date startTime endTime venue')
+      .sort({ date: 1, startTime: 1 });
+
+    // Format class names for display
+    const formattedClasses = classes.map(classItem => ({
+      _id: classItem._id,
+      name: `${classItem.grade} - ${classItem.category} (${classItem.date} ${classItem.startTime}-${classItem.endTime})`
+    }));
+
+    res.json({ classes: formattedClasses });
+  } catch (err) {
+    console.error('Error in getNormalClasses:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 // Get available students for enrollment (not already enrolled in this class)
 exports.getAvailableStudents = async (req, res) => {
   try {
     const classId = req.params.id;
+    const { filterClassId } = req.query;
 
     const classItem = await Class.findById(classId);
     if (!classItem) {
       return res.status(404).json({ message: 'Class not found' });
     }
 
-    // Get all approved students who are not enrolled in this class
-    const availableStudents = await Student.find({
-      status: 'Approved',
-      _id: { $nin: classItem.enrolledStudents }
-    })
-    .select('studentId firstName lastName fullName email profilePicture selectedGrade school contactNumber')
-    .sort({ firstName: 1, lastName: 1 });
+    // Build base query for available students
+    let query = {
+      status: 'Approved'
+    };
+
+    // If filtering by class, get students from that class
+    if (filterClassId) {
+      const filterClass = await Class.findById(filterClassId);
+      if (!filterClass) {
+        return res.status(404).json({ message: 'Filter class not found' });
+      }
+
+      // Get students who are enrolled in the filter class
+      query._id = { $in: filterClass.enrolledStudents };
+    }
+
+    // Exclude students who are already enrolled in the target class
+    if (classItem.enrolledStudents && classItem.enrolledStudents.length > 0) {
+      query._id = {
+        ...query._id,
+        $nin: classItem.enrolledStudents
+      };
+    }
+
+    // Get available students
+    const availableStudents = await Student.find(query)
+      .select('studentId firstName lastName fullName email profilePicture selectedGrade school contactNumber')
+      .sort({ firstName: 1, lastName: 1 });
 
     res.json({
       success: true,
       students: availableStudents,
       count: availableStudents.length
+    });
+  } catch (err) {
+    console.error('Error in getAvailableStudents:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Bulk enroll students in class
+exports.bulkEnrollStudents = async (req, res) => {
+  try {
+    const { studentIds } = req.body;
+    const classId = req.params.id;
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ message: 'No students provided for enrollment' });
+    }
+
+    const classItem = await Class.findById(classId);
+    if (!classItem) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    // Check if class has enough capacity
+    const currentEnrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
+    if (currentEnrolledCount + studentIds.length > classItem.capacity) {
+      return res.status(400).json({
+        message: 'Class capacity exceeded',
+        currentEnrolled: currentEnrolledCount,
+        capacity: classItem.capacity,
+        requested: studentIds.length
+      });
+    }
+
+    const results = {
+      success: [],
+      failed: []
+    };
+
+    // Process each student
+    for (const studentId of studentIds) {
+      try {
+        const student = await Student.findById(studentId);
+        if (!student) {
+          results.failed.push({
+            studentId,
+            reason: 'Student not found'
+          });
+          continue;
+        }
+
+        // Check if already enrolled
+        if (classItem.enrolledStudents.includes(studentId)) {
+          results.failed.push({
+            studentId,
+            reason: 'Already enrolled'
+          });
+          continue;
+        }
+
+        // Add student to class
+        classItem.enrolledStudents.push(studentId);
+
+        // Add class to student's enrolledClasses
+        if (!student.enrolledClasses.includes(classId)) {
+          student.enrolledClasses.push(classId);
+          await student.save();
+        }
+
+        // Send notification
+        try {
+          const notification = new Notification({
+            recipient: student.userId,
+            type: 'class_enrollment',
+            title: 'ඔබ නව පන්තියකට ලියාපදිංචි කර ඇත',
+            message: `ඔබ ${classItem.grade} - ${classItem.category} පන්තියට සාර්ථකව ලියාපදිංචි කර ඇත. පන්ති විස්තර සහ කාලසටහන පරීක්ෂා කරන්න.`,
+            data: {
+              studentId: studentId,
+              classId: classId
+            }
+          });
+          await notification.save();
+        } catch (notificationError) {
+          console.error('Error sending enrollment notification:', notificationError);
+        }
+
+        results.success.push(studentId);
+      } catch (error) {
+        results.failed.push({
+          studentId,
+          reason: error.message
+        });
+      }
+    }
+
+    // Save class changes
+    await classItem.save();
+
+    res.json({
+      message: 'Bulk enrollment completed',
+      results
     });
   } catch (err) {
     console.error(err.message);
