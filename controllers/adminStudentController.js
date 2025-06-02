@@ -8,13 +8,15 @@ const ClassRequest = require('../models/ClassRequest');
 // Get all student registration requests
 exports.getStudentRegistrations = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, grade, search, classId } = req.query;
+    const { page = 1, limit = 10, status, grade, search, classId, paymentRole, paymentStatus } = req.query;
 
     // Build filter object
     const filter = {};
     if (status) filter.status = status;
     if (grade) filter.selectedGrade = grade;
     if (classId) filter.enrolledClasses = classId;
+    if (paymentRole) filter.paymentRole = paymentRole;
+    if (paymentStatus) filter.paymentStatus = paymentStatus;
 
     // Add search functionality
     if (search) {
