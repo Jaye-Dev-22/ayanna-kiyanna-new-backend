@@ -648,3 +648,99 @@ exports.getAvailableGrades = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// Update student payment role
+exports.updatePaymentRole = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { studentId } = req.params;
+    const { paymentRole, adminNote } = req.body;
+
+    const student = await Student.findById(studentId).populate('userId');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Update payment role
+    student.paymentRole = paymentRole;
+    student.adminAction = {
+      actionBy: req.user.id,
+      actionDate: new Date(),
+      actionNote: adminNote || `Payment role updated to ${paymentRole}`
+    };
+
+    await student.save();
+
+    // Create notification for student
+    await Notification.createNotification({
+      recipient: student.userId._id,
+      type: 'payment_role_change',
+      title: 'Payment Role Updated',
+      message: `Your payment role has been updated to ${paymentRole}.`,
+      data: {
+        studentId: student._id,
+        adminNote: adminNote
+      }
+    });
+
+    res.json({
+      message: 'Payment role updated successfully',
+      student
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// Update student payment status
+exports.updatePaymentStatus = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { studentId } = req.params;
+    const { paymentStatus, adminNote } = req.body;
+
+    const student = await Student.findById(studentId).populate('userId');
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Update payment status
+    student.paymentStatus = paymentStatus;
+    student.adminAction = {
+      actionBy: req.user.id,
+      actionDate: new Date(),
+      actionNote: adminNote || `Payment status updated to ${paymentStatus}`
+    };
+
+    await student.save();
+
+    // Create notification for student
+    await Notification.createNotification({
+      recipient: student.userId._id,
+      type: 'payment_status_change',
+      title: 'Payment Status Updated',
+      message: `Your payment status has been updated to ${paymentStatus}.`,
+      data: {
+        studentId: student._id,
+        adminNote: adminNote
+      }
+    });
+
+    res.json({
+      message: 'Payment status updated successfully',
+      student
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};

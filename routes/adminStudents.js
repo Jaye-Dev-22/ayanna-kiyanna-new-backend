@@ -19,7 +19,9 @@ const {
   changeStudentClass,
   sendMessageToStudent,
   getAvailableClassesForAssignment,
-  getAvailableGrades
+  getAvailableGrades,
+  updatePaymentRole,
+  updatePaymentStatus
 } = require('../controllers/adminStudentController');
 
 // Validation rules for admin actions
@@ -116,5 +118,31 @@ router.put('/:studentId/change-class', [adminAuth, ...classChangeValidation], ch
 // @desc    Send message to student
 // @access  Private (Admin/Moderator)
 router.post('/:studentId/message', [adminAuth, ...messageValidation], sendMessageToStudent);
+
+// @route   PUT /api/admin/students/:studentId/payment-role
+// @desc    Update student payment role
+// @access  Private (Admin/Moderator)
+router.put(
+  '/:studentId/payment-role',
+  [
+    adminAuth,
+    check('paymentRole', 'Payment role is required').isIn(['Pay Card', 'Free Card']),
+    check('adminNote', 'Admin note is required').not().isEmpty()
+  ],
+  updatePaymentRole
+);
+
+// @route   PUT /api/admin/students/:studentId/payment-status
+// @desc    Update student payment status
+// @access  Private (Admin/Moderator)
+router.put(
+  '/:studentId/payment-status',
+  [
+    adminAuth,
+    check('paymentStatus', 'Payment status is required').isIn(['admissioned', 'Paid', 'Unpaid']),
+    check('adminNote', 'Admin note is required').not().isEmpty()
+  ],
+  updatePaymentStatus
+);
 
 module.exports = router;

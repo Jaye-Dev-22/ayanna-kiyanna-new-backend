@@ -98,7 +98,7 @@ const StudentSchema = new mongoose.Schema({
     }],
     default: [],
     validate: {
-      validator: function(classes) {
+      validator: function (classes) {
         // Check for duplicates
         const classIds = classes.map(id => id.toString());
         const uniqueIds = [...new Set(classIds)];
@@ -106,6 +106,18 @@ const StudentSchema = new mongoose.Schema({
       },
       message: 'this Student already enrolled in this class'
     }
+  },
+
+  // Payment Information
+  paymentRole: {
+    type: String,
+    enum: ['Pay Card', 'Free Card'],
+    default: 'Pay Card'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['admissioned', 'Paid', 'Unpaid'],
+    default: 'admissioned'
   },
 
   // Student Credentials
@@ -169,7 +181,7 @@ const StudentSchema = new mongoose.Schema({
 });
 
 // Hash student password before saving
-StudentSchema.pre('save', async function(next) {
+StudentSchema.pre('save', async function (next) {
   if (!this.isModified('studentPassword')) return next();
 
   try {
@@ -182,18 +194,18 @@ StudentSchema.pre('save', async function(next) {
 });
 
 // Update the updatedAt field before saving
-StudentSchema.pre('save', function(next) {
+StudentSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
 // Method to compare student passwords
-StudentSchema.methods.compareStudentPassword = async function(candidatePassword) {
+StudentSchema.methods.compareStudentPassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.studentPassword);
 };
 
 // Static method to generate student ID
-StudentSchema.statics.generateStudentId = async function(grade) {
+StudentSchema.statics.generateStudentId = async function (grade) {
   try {
     // Extract grade prefix based on new logic
     let gradePrefix = '';
@@ -254,7 +266,7 @@ StudentSchema.statics.generateStudentId = async function(grade) {
 };
 
 // Virtual for full name
-StudentSchema.virtual('fullName').get(function() {
+StudentSchema.virtual('fullName').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 

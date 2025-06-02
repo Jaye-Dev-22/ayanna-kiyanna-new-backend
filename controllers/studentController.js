@@ -19,7 +19,6 @@ exports.registerStudent = async (req, res) => {
   }
 
   try {
-
     const {
       surname,
       firstName,
@@ -71,7 +70,7 @@ exports.registerStudent = async (req, res) => {
     // Generate student ID
     const studentId = await Student.generateStudentId(selectedGrade);
 
-    // Create new student first
+    // Create new student with default payment role and status
     const student = new Student({
       surname,
       firstName,
@@ -95,7 +94,9 @@ exports.registerStudent = async (req, res) => {
       studentPassword, // This will be hashed by the Student model pre-save hook
       userId: req.user.id,
       agreedToTerms,
-      status: 'Pending'
+      status: 'Pending',
+      paymentRole: 'Pay Card', // Default payment role
+      paymentStatus: 'admissioned' // Default payment status
     });
 
     await student.save();
