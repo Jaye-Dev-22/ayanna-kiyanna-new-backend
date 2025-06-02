@@ -21,7 +21,9 @@ const NotificationSchema = new mongoose.Schema({
       'status_change',
       'monitor_added',
       'monitor_removed',
-      'class_fee_change'
+      'class_fee_change',
+      'payment_role_change',
+      'payment_status_change'
     ],
     required: true
   },
