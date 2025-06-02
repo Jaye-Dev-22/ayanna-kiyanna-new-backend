@@ -20,7 +20,8 @@ const NotificationSchema = new mongoose.Schema({
       'account_deletion',
       'status_change',
       'monitor_added',
-      'monitor_removed'
+      'monitor_removed',
+      'class_fee_change'
     ],
     required: true
   },
@@ -55,6 +56,15 @@ const NotificationSchema = new mongoose.Schema({
     subject: {
       type: String,
       trim: true
+    },
+    oldFee: {
+      type: Number
+    },
+    newFee: {
+      type: Number
+    },
+    isFreeClass: {
+      type: Boolean
     }
   },
   read: {
@@ -70,7 +80,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   expiresAt: {
     type: Date,
-    default: function() {
+    default: function () {
       // Notifications expire after 30 days
       return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     }
@@ -83,7 +93,7 @@ NotificationSchema.index({ createdAt: -1 });
 NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Static method to create notification
-NotificationSchema.statics.createNotification = async function(notificationData) {
+NotificationSchema.statics.createNotification = async function (notificationData) {
   try {
     // Validate required fields
     if (!notificationData.recipient) {
@@ -115,7 +125,7 @@ NotificationSchema.statics.createNotification = async function(notificationData)
 };
 
 // Static method to mark as read
-NotificationSchema.statics.markAsRead = async function(notificationId, userId) {
+NotificationSchema.statics.markAsRead = async function (notificationId, userId) {
   try {
     const readAt = new Date();
     const expiresAt = new Date(readAt.getTime() + 24 * 60 * 60 * 1000); // 1 day from read time
@@ -132,7 +142,7 @@ NotificationSchema.statics.markAsRead = async function(notificationId, userId) {
 };
 
 // Static method to get unread count
-NotificationSchema.statics.getUnreadCount = async function(userId) {
+NotificationSchema.statics.getUnreadCount = async function (userId) {
   try {
     const count = await this.countDocuments({
       recipient: userId,

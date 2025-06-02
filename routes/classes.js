@@ -61,7 +61,18 @@ const classValidation = [
     .isInt({ min: 1, max: 500 }),
   check('specialNote', 'Special note cannot exceed 500 characters')
     .optional()
-    .isLength({ max: 500 })
+    .isLength({ max: 500 }),
+  // New fee-related validations
+  check('isFreeClass', 'isFreeClass must be a boolean')
+    .isBoolean(),
+  check('monthlyFee', 'Monthly fee must be a non-negative number')
+    .isFloat({ min: 0 })
+    .custom((value, { req }) => {
+      if (req.body.isFreeClass && value !== 0) {
+        throw new Error('Monthly fee must be 0 for free classes');
+      }
+      return true;
+    })
 ];
 
 // @route   GET /api/classes

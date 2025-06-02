@@ -21,7 +21,7 @@ const ClassSchema = new mongoose.Schema({
     type: String,
     trim: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         // Allow empty string or valid URL
         if (!v || v === '') return true;
         try {
@@ -75,6 +75,17 @@ const ClassSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // New fee-related fields
+  isFreeClass: {
+    type: Boolean,
+    default: false
+  },
+  monthlyFee: {
+    type: Number,
+    required: true,
+    min: [0, 'Monthly fee cannot be negative'],
+    default: 0
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -87,7 +98,7 @@ const ClassSchema = new mongoose.Schema({
     }],
     default: [],
     validate: {
-      validator: function(students) {
+      validator: function (students) {
         // Check for duplicates
         const studentIds = students.map(id => id.toString());
         const uniqueIds = [...new Set(studentIds)];
@@ -104,13 +115,13 @@ const ClassSchema = new mongoose.Schema({
     default: [],
     validate: [
       {
-        validator: function(monitors) {
+        validator: function (monitors) {
           return monitors.length <= 5;
         },
         message: 'Maximum 5 monitors allowed per class'
       },
       {
-        validator: function(monitors) {
+        validator: function (monitors) {
           // Check for duplicates
           const monitorIds = monitors.map(id => id.toString());
           const uniqueIds = [...new Set(monitorIds)];
@@ -131,18 +142,18 @@ const ClassSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt field before saving
-ClassSchema.pre('save', function(next) {
+ClassSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });
 
 // Virtual for enrolled count
-ClassSchema.virtual('enrolledCount').get(function() {
+ClassSchema.virtual('enrolledCount').get(function () {
   return this.enrolledStudents ? this.enrolledStudents.length : 0;
 });
 
 // Virtual for available spots
-ClassSchema.virtual('availableSpots').get(function() {
+ClassSchema.virtual('availableSpots').get(function () {
   const enrolledCount = this.enrolledStudents ? this.enrolledStudents.length : 0;
   return this.capacity - enrolledCount;
 });

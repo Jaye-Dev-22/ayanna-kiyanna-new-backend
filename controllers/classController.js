@@ -205,6 +205,37 @@ exports.createClass = async (req, res) => {
   }
 };
 
+// Helper function to create fee change notification
+const createFeeChangeNotification = async (classId, oldFee, newFee, isFreeClass) => {
+  try {
+    const classDoc = await Class.findById(classId).populate('enrolledStudents');
+    if (!classDoc) return;
+
+    const notificationPromises = classDoc.enrolledStudents.map(async (student) => {
+      const message = isFreeClass
+        ? `Your class "${classDoc.grade}" has been changed to a free class.`
+        : `The monthly fee for your class "${classDoc.grade}" has been changed from Rs. ${oldFee} to Rs. ${newFee}.`;
+
+      return new Notification({
+        recipient: student.userId,
+        type: 'class_fee_change',
+        title: 'Class Fee Update',
+        message: message,
+        data: {
+          classId: classId,
+          oldFee: oldFee,
+          newFee: newFee,
+          isFreeClass: isFreeClass
+        }
+      }).save();
+    });
+
+    await Promise.all(notificationPromises);
+  } catch (error) {
+    console.error('Error creating fee change notifications:', error);
+  }
+};
+
 // Update class
 exports.updateClass = async (req, res) => {
   const errors = validationResult(req);
@@ -213,7 +244,22 @@ exports.updateClass = async (req, res) => {
   }
 
   try {
-    const { type, category, platform, locationLink, grade, date, startTime, endTime, venue, capacity, specialNote, isActive } = req.body;
+    const {
+      type,
+      category,
+      platform,
+      locationLink,
+      grade,
+      date,
+      startTime,
+      endTime,
+      venue,
+      capacity,
+      specialNote,
+      isActive,
+      isFreeClass,
+      monthlyFee
+    } = req.body;
 
     let classItem = await Class.findById(req.params.id);
     if (!classItem) {
@@ -261,6 +307,9 @@ exports.updateClass = async (req, res) => {
       });
     }
 
+    // Check if fee is being changed
+    const isFeeChange = classItem.monthlyFee !== monthlyFee || classItem.isFreeClass !== isFreeClass;
+
     // Update fields
     classItem.type = type;
     classItem.category = category;
@@ -274,8 +323,20 @@ exports.updateClass = async (req, res) => {
     classItem.capacity = capacity;
     classItem.specialNote = specialNote;
     if (isActive !== undefined) classItem.isActive = isActive;
+    classItem.isFreeClass = isFreeClass;
+    classItem.monthlyFee = monthlyFee;
 
     const updatedClass = await classItem.save();
+
+    // If fee was changed, create notifications
+    if (isFeeChange) {
+      await createFeeChangeNotification(
+        req.params.id,
+        classItem.monthlyFee,
+        monthlyFee,
+        isFreeClass
+      );
+    }
 
     // Populate the updated class before sending response
     const populatedClass = await Class.findById(updatedClass._id)
