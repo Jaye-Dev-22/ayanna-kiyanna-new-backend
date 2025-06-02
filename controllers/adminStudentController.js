@@ -660,9 +660,12 @@ exports.updatePaymentRole = async (req, res) => {
 
   try {
     const { studentId } = req.params;
-    const { paymentRole, adminNote } = req.body;
+    const { paymentRole, adminNote, freeClasses } = req.body;
 
-    const student = await Student.findById(studentId).populate('userId');
+    const student = await Student.findById(studentId)
+      .populate('userId')
+      .populate('enrolledClasses', 'type grade date startTime endTime venue category');
+
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
@@ -672,6 +675,33 @@ exports.updatePaymentRole = async (req, res) => {
 
     // Update payment role
     student.paymentRole = paymentRole;
+
+    // Handle free classes
+    if (paymentRole === 'Free Card') {
+      // Validate that at least one class is selected
+      if (!freeClasses || freeClasses.length === 0) {
+        return res.status(400).json({
+          message: 'At least one class must be selected for Free Card payment role'
+        });
+      }
+
+      // Validate that selected classes are from student's enrolled classes
+      const enrolledClassIds = student.enrolledClasses.map(c => c._id.toString());
+      const invalidClasses = freeClasses.filter(id => !enrolledClassIds.includes(id));
+
+      if (invalidClasses.length > 0) {
+        return res.status(400).json({
+          message: 'Selected classes must be from student\'s enrolled classes'
+        });
+      }
+
+      // Update free classes
+      student.freeClasses = freeClasses;
+    } else {
+      // If changing to Pay Card, clear free classes
+      student.freeClasses = [];
+    }
+
     student.adminAction = {
       actionBy: req.user.id,
       actionDate: new Date(),
@@ -688,13 +718,21 @@ exports.updatePaymentRole = async (req, res) => {
       message: `Your payment role has been updated to ${paymentRole}.`,
       data: {
         studentId: student._id,
-        adminNote: adminNote || defaultAdminNote
+        adminNote: adminNote || defaultAdminNote,
+        freeClasses: student.freeClasses
       }
     });
 
+    // Populate the response with free classes
+    const populatedStudent = await Student.findById(student._id)
+      .populate('userId', 'email fullName emailVerified')
+      .populate('enrolledClasses', 'type grade date startTime endTime venue category')
+      .populate('freeClasses', 'type grade date startTime endTime venue category')
+      .populate('adminAction.actionBy', 'fullName email');
+
     res.json({
       message: 'Payment role updated successfully',
-      student
+      student: populatedStudent
     });
   } catch (err) {
     console.error(err.message);

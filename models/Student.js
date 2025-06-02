@@ -114,6 +114,22 @@ const StudentSchema = new mongoose.Schema({
     enum: ['Pay Card', 'Free Card'],
     default: 'Pay Card'
   },
+  freeClasses: {
+    type: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Class'
+    }],
+    default: [],
+    validate: {
+      validator: function (classes) {
+        // Check for duplicates
+        const classIds = classes.map(id => id.toString());
+        const uniqueIds = [...new Set(classIds)];
+        return classIds.length === uniqueIds.length;
+      },
+      message: 'Duplicate free classes not allowed'
+    }
+  },
   paymentStatus: {
     type: String,
     enum: ['admissioned', 'Paid', 'Unpaid'],
