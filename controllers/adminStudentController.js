@@ -665,12 +665,15 @@ exports.updatePaymentRole = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
+    // Set default admin note if not provided
+    const defaultAdminNote = `Payment role updated from ${student.paymentRole} to ${paymentRole}`;
+
     // Update payment role
     student.paymentRole = paymentRole;
     student.adminAction = {
       actionBy: req.user.id,
       actionDate: new Date(),
-      actionNote: adminNote || `Payment role updated to ${paymentRole}`
+      actionNote: adminNote || defaultAdminNote
     };
 
     await student.save();
@@ -683,7 +686,7 @@ exports.updatePaymentRole = async (req, res) => {
       message: `Your payment role has been updated to ${paymentRole}.`,
       data: {
         studentId: student._id,
-        adminNote: adminNote
+        adminNote: adminNote || defaultAdminNote
       }
     });
 
@@ -713,12 +716,15 @@ exports.updatePaymentStatus = async (req, res) => {
       return res.status(404).json({ message: 'Student not found' });
     }
 
+    // Set default admin note if not provided
+    const defaultAdminNote = `Payment status updated from ${student.paymentStatus} to ${paymentStatus}`;
+
     // Update payment status
     student.paymentStatus = paymentStatus;
     student.adminAction = {
       actionBy: req.user.id,
       actionDate: new Date(),
-      actionNote: adminNote || `Payment status updated to ${paymentStatus}`
+      actionNote: adminNote || defaultAdminNote
     };
 
     await student.save();
@@ -731,7 +737,7 @@ exports.updatePaymentStatus = async (req, res) => {
       message: `Your payment status has been updated to ${paymentStatus}.`,
       data: {
         studentId: student._id,
-        adminNote: adminNote
+        adminNote: adminNote || defaultAdminNote
       }
     });
 
