@@ -15,7 +15,8 @@ const {
   processPaymentRequest,
   bulkProcessPaymentRequests,
   getAllPaymentRequests,
-  updatePaymentRequestStatus
+  updatePaymentRequestStatus,
+  getMyPaymentRequests
 } = require('../controllers/paymentController');
 
 // Validation rules
@@ -82,6 +83,11 @@ router.post('/submit', [auth, ...paymentSubmissionValidation], submitPaymentRequ
 // @desc    Update payment request
 // @access  Private (Student)
 router.put('/:paymentId', [auth, ...paymentUpdateValidation], updatePaymentRequest);
+
+// @route   GET /api/payments/my-requests
+// @desc    Get student's own payment requests
+// @access  Private (Student)
+router.get('/my-requests', auth, getMyPaymentRequests);
 
 // Admin routes
 // @route   GET /api/payments/admin/:classId/:year/:month

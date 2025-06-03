@@ -499,3 +499,65 @@ exports.updatePaymentRequestStatus = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+// @desc    Delete payment request
+// @route   DELETE /api/admin/payment-requests/:paymentId
+// @access  Private (Admin/Moderator)
+exports.deletePaymentRequest = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment request not found' });
+    }
+
+    await Payment.findByIdAndDelete(paymentId);
+
+    res.json({
+      message: 'Payment request deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting payment request:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Get student's own payment requests
+// @route   GET /api/payments/my-requests
+// @access  Private (Student)
+exports.getMyPaymentRequests = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+
+    const paymentRequests = await Payment.find({ studentId })
+      .populate('classId', 'grade category monthlyFee')
+      .populate('adminAction.actionBy', 'fullName email')
+      .sort({ createdAt: -1 });
+
+    // Format the response to match frontend expectations
+    const formattedRequests = paymentRequests.map(payment => ({
+      _id: payment._id,
+      class: {
+        grade: payment.classId?.grade,
+        category: payment.classId?.category
+      },
+      month: payment.month,
+      year: payment.year,
+      amount: payment.amount,
+      status: payment.status,
+      receiptUrl: payment.receiptUrl,
+      note: payment.note,
+      createdAt: payment.createdAt,
+      adminAction: payment.adminAction
+    }));
+
+    res.json({
+      success: true,
+      paymentRequests: formattedRequests
+    });
+  } catch (error) {
+    console.error('Error fetching student payment requests:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

@@ -8,7 +8,8 @@ const adminAuth = require('../middleware/adminAuth');
 // Import controllers
 const {
   getAllPaymentRequests,
-  updatePaymentRequestStatus
+  updatePaymentRequestStatus,
+  deletePaymentRequest
 } = require('../controllers/paymentController');
 
 // Validation rules
@@ -29,5 +30,10 @@ router.get('/all-payment-requests', adminAuth, getAllPaymentRequests);
 // @desc    Update payment request status (for all payment requests page)
 // @access  Private (Admin/Moderator)
 router.put('/payment-requests/:paymentId/status', [adminAuth, ...statusUpdateValidation], updatePaymentRequestStatus);
+
+// @route   DELETE /api/admin/payment-requests/:paymentId
+// @desc    Delete payment request
+// @access  Private (Admin/Moderator)
+router.delete('/payment-requests/:paymentId', adminAuth, deletePaymentRequest);
 
 module.exports = router;
