@@ -387,3 +387,115 @@ exports.bulkProcessPaymentRequests = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+// @desc    Get all payment requests across all classes for admin dashboard
+// @route   GET /api/admin/all-payment-requests
+// @access  Private (Admin/Moderator)
+exports.getAllPaymentRequests = async (req, res) => {
+  try {
+    const { page = 1, limit = 100, status, classId, month, year } = req.query;
+
+    // Build filter object
+    const filter = {};
+    if (status) filter.status = status;
+    if (classId) filter.classId = classId;
+    if (month) filter.month = parseInt(month);
+    if (year) filter.year = parseInt(year);
+
+    // Get all payment requests with pagination
+    const paymentRequests = await Payment.find(filter)
+      .populate({
+        path: 'studentId',
+        select: 'firstName lastName surname fullName studentId email',
+        options: { virtuals: true }
+      })
+      .populate({
+        path: 'classId',
+        select: 'grade category monthlyFee isFreeClass'
+      })
+      .populate({
+        path: 'adminAction.actionBy',
+        select: 'fullName email'
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    // Get total count for pagination
+    const totalCount = await Payment.countDocuments(filter);
+
+    // Transform the data to match frontend expectations
+    const transformedRequests = paymentRequests.map(payment => ({
+      _id: payment._id,
+      student: payment.studentId,
+      class: payment.classId,
+      month: payment.month,
+      year: payment.year,
+      amount: payment.amount,
+      status: payment.status,
+      receiptUrl: payment.receiptUrl,
+      note: payment.note,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+      adminAction: payment.adminAction
+    }));
+
+    res.json({
+      paymentRequests: transformedRequests,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount,
+        hasNext: page * limit < totalCount,
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching all payment requests:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Update payment request status (for all payment requests page)
+// @route   PUT /api/admin/payment-requests/:paymentId/status
+// @access  Private (Admin/Moderator)
+exports.updatePaymentRequestStatus = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const { status, adminNote } = req.body;
+
+    // Validate status
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Must be approved, rejected, or pending' });
+    }
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment request not found' });
+    }
+
+    // Update payment status
+    payment.status = status;
+    payment.adminAction = {
+      actionBy: req.user.id,
+      actionDate: new Date(),
+      actionNote: adminNote || `Payment ${status} by admin`
+    };
+
+    await payment.save();
+
+    // Populate the payment before sending response
+    const populatedPayment = await Payment.findById(payment._id)
+      .populate('studentId', 'firstName lastName surname fullName studentId email')
+      .populate('classId', 'grade category monthlyFee')
+      .populate('adminAction.actionBy', 'fullName email');
+
+    res.json({
+      message: `Payment request ${status} successfully`,
+      payment: populatedPayment
+    });
+  } catch (error) {
+    console.error('Error updating payment request status:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};

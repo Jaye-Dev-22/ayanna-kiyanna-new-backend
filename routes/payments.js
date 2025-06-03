@@ -13,7 +13,9 @@ const {
   updatePaymentRequest,
   getAdminPaymentRequests,
   processPaymentRequest,
-  bulkProcessPaymentRequests
+  bulkProcessPaymentRequests,
+  getAllPaymentRequests,
+  updatePaymentRequestStatus
 } = require('../controllers/paymentController');
 
 // Validation rules
@@ -53,6 +55,14 @@ const bulkProcessValidation = [
   check('action', 'Action is required and must be Approved or Rejected')
     .isIn(['Approved', 'Rejected']),
   check('actionNote', 'Action note cannot exceed 500 characters')
+    .optional()
+    .isLength({ max: 500 })
+];
+
+const statusUpdateValidation = [
+  check('status', 'Status is required and must be approved, rejected, or pending')
+    .isIn(['approved', 'rejected', 'pending']),
+  check('adminNote', 'Admin note cannot exceed 500 characters')
     .optional()
     .isLength({ max: 500 })
 ];
