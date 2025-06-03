@@ -46,17 +46,17 @@ const calculateAttendance = async (studentId, classId, year, month) => {
 exports.getStudentPaymentStatus = async (req, res) => {
   try {
     const { classId, year } = req.params;
-    const studentId = req.user.studentId;
 
-    if (!studentId) {
-      return res.status(400).json({ message: 'Student ID not found' });
-    }
-
-    // Get student data to check free classes
-    const student = await Student.findById(studentId);
+    // Find student record using user ID
+    const student = await Student.findOne({ userId: req.user.id });
     if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
+      return res.status(404).json({ message: 'Student profile not found' });
     }
+
+    const studentId = student._id;
+
+    // Student data is already available from the first query
+    // No need to fetch again
 
     // Get class data
     const classData = await Class.findById(classId);
@@ -123,11 +123,14 @@ exports.submitPaymentRequest = async (req, res) => {
 
   try {
     const { classId, year, month, amount, receiptUrl, receiptPublicId, additionalNote } = req.body;
-    const studentId = req.user.studentId;
 
-    if (!studentId) {
-      return res.status(400).json({ message: 'Student ID not found' });
+    // Find student record using user ID
+    const student = await Student.findOne({ userId: req.user.id });
+    if (!student) {
+      return res.status(404).json({ message: 'Student profile not found' });
     }
+
+    const studentId = student._id;
 
     // Check if payment already exists
     const existingPayment = await Payment.findOne({
@@ -186,7 +189,14 @@ exports.updatePaymentRequest = async (req, res) => {
   try {
     const { paymentId } = req.params;
     const { receiptUrl, receiptPublicId, additionalNote } = req.body;
-    const studentId = req.user.studentId;
+
+    // Find student record using user ID
+    const student = await Student.findOne({ userId: req.user.id });
+    if (!student) {
+      return res.status(404).json({ message: 'Student profile not found' });
+    }
+
+    const studentId = student._id;
 
     // Find the payment and verify ownership
     const payment = await Payment.findOne({
