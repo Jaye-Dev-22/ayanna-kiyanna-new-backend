@@ -254,7 +254,7 @@ exports.getAdminPaymentRequests = async (req, res) => {
     .sort({ createdAt: -1 });
 
     // Get all enrolled students for this class
-    const classData = await Class.findById(classId).populate('enrolledStudents', 'firstName lastName surname fullName studentId email contactNumber freeClasses');
+    const classData = await Class.findById(classId).populate('enrolledStudents', 'firstName lastName surname fullName studentId email contactNumber freeClasses paymentStatus');
 
     if (!classData) {
       return res.status(404).json({ message: 'Class not found' });
