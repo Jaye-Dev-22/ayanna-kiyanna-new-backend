@@ -528,7 +528,13 @@ exports.deletePaymentRequest = async (req, res) => {
 // @access  Private (Student)
 exports.getMyPaymentRequests = async (req, res) => {
   try {
-    const studentId = req.user.id;
+    // First find the student record using the user ID
+    const student = await Student.findOne({ userId: req.user.id });
+    if (!student) {
+      return res.status(404).json({ message: 'Student profile not found' });
+    }
+
+    const studentId = student._id;
 
     const paymentRequests = await Payment.find({ studentId })
       .populate('classId', 'grade category monthlyFee')
@@ -545,11 +551,14 @@ exports.getMyPaymentRequests = async (req, res) => {
       month: payment.month,
       year: payment.year,
       amount: payment.amount,
-      status: payment.status,
+      status: payment.status.toLowerCase(), // Convert to lowercase for frontend
       receiptUrl: payment.receiptUrl,
-      note: payment.note,
+      note: payment.additionalNote, // Use additionalNote from the model
       createdAt: payment.createdAt,
-      adminAction: payment.adminAction
+      adminAction: payment.adminAction ? {
+        ...payment.adminAction,
+        actionNote: payment.adminAction.actionNote
+      } : null
     }));
 
     res.json({
@@ -558,6 +567,47 @@ exports.getMyPaymentRequests = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching student payment requests:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// @desc    Delete student's own payment request
+// @route   DELETE /api/payments/:paymentId
+// @access  Private (Student)
+exports.deleteMyPaymentRequest = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    // First find the student record using the user ID
+    const student = await Student.findOne({ userId: req.user.id });
+    if (!student) {
+      return res.status(404).json({ message: 'Student profile not found' });
+    }
+
+    const studentId = student._id;
+
+    // Find the payment and verify ownership
+    const payment = await Payment.findOne({
+      _id: paymentId,
+      studentId: studentId
+    });
+
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment request not found' });
+    }
+
+    // Only allow deletion if payment is pending or rejected
+    if (payment.status === 'Approved') {
+      return res.status(400).json({ message: 'Cannot delete approved payment requests' });
+    }
+
+    await Payment.findByIdAndDelete(paymentId);
+
+    res.json({
+      message: 'Payment request deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting student payment request:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

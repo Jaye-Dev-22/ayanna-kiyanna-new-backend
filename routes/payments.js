@@ -16,7 +16,8 @@ const {
   bulkProcessPaymentRequests,
   getAllPaymentRequests,
   updatePaymentRequestStatus,
-  getMyPaymentRequests
+  getMyPaymentRequests,
+  deleteMyPaymentRequest
 } = require('../controllers/paymentController');
 
 // Validation rules
@@ -88,6 +89,11 @@ router.put('/:paymentId', [auth, ...paymentUpdateValidation], updatePaymentReque
 // @desc    Get student's own payment requests
 // @access  Private (Student)
 router.get('/my-requests', auth, getMyPaymentRequests);
+
+// @route   DELETE /api/payments/:paymentId
+// @desc    Delete student's own payment request
+// @access  Private (Student)
+router.delete('/:paymentId', auth, deleteMyPaymentRequest);
 
 // Admin routes
 // @route   GET /api/payments/admin/:classId/:year/:month
