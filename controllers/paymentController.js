@@ -88,8 +88,8 @@ exports.getStudentPaymentStatus = async (req, res) => {
         isFreeClass,
         monthlyFee: classData.monthlyFee,
         payment: existingPayment || null,
-        requiresPayment: attendance.presentDays >= 4 && !isFreeClass,
-        isOverdue: attendance.presentDays >= 4 && !isFreeClass && !existingPayment && month < new Date().getMonth() + 1
+        requiresPayment: attendance.presentDays >= 2 && !isFreeClass,
+        isOverdue: attendance.presentDays >= 2 && !isFreeClass && !existingPayment && month < new Date().getMonth() + 1
       };
 
       monthlyStatus.push(monthData);
@@ -281,8 +281,8 @@ exports.getAdminPaymentRequests = async (req, res) => {
           attendance,
           payment: existingPayment || null,
           isFreeClass,
-          requiresPayment: attendance.presentDays >= 4 && !isFreeClass,
-          isOverdue: attendance.presentDays >= 4 && !isFreeClass && !existingPayment && parseInt(month) < new Date().getMonth() + 1
+          requiresPayment: attendance.presentDays >= 2 && !isFreeClass,
+          isOverdue: attendance.presentDays >= 2 && !isFreeClass && !existingPayment && parseInt(month) < new Date().getMonth() + 1
         };
       })
     );
