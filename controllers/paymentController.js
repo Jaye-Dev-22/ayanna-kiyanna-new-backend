@@ -164,7 +164,7 @@ exports.submitPaymentRequest = async (req, res) => {
 
     // Populate the payment before sending response
     const populatedPayment = await Payment.findById(payment._id)
-      .populate('studentId', 'fullName studentId')
+      .populate('studentId', 'firstName lastName surname fullName studentId')
       .populate('classId', 'grade category monthlyFee');
 
     res.status(201).json({
@@ -248,13 +248,13 @@ exports.getAdminPaymentRequests = async (req, res) => {
       year: parseInt(year),
       month: parseInt(month)
     })
-    .populate('studentId', 'fullName studentId email contactNumber')
+    .populate('studentId', 'firstName lastName surname fullName studentId email contactNumber')
     .populate('classId', 'grade category monthlyFee')
     .populate('adminAction.actionBy', 'fullName email')
     .sort({ createdAt: -1 });
 
     // Get all enrolled students for this class
-    const classData = await Class.findById(classId).populate('enrolledStudents', 'fullName studentId email contactNumber freeClasses');
+    const classData = await Class.findById(classId).populate('enrolledStudents', 'firstName lastName surname fullName studentId email contactNumber freeClasses');
 
     if (!classData) {
       return res.status(404).json({ message: 'Class not found' });
@@ -270,6 +270,9 @@ exports.getAdminPaymentRequests = async (req, res) => {
         return {
           student: {
             _id: student._id,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            surname: student.surname,
             fullName: student.fullName,
             studentId: student.studentId,
             email: student.email,
@@ -333,7 +336,7 @@ exports.processPaymentRequest = async (req, res) => {
 
     // Populate the payment before sending response
     const populatedPayment = await Payment.findById(payment._id)
-      .populate('studentId', 'fullName studentId email')
+      .populate('studentId', 'firstName lastName surname fullName studentId email')
       .populate('classId', 'grade category monthlyFee')
       .populate('adminAction.actionBy', 'fullName email');
 
