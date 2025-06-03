@@ -85,6 +85,7 @@ const adminStudentRoutes = require('./routes/adminStudents');
 const notificationRoutes = require('./routes/notifications');
 const classRequestRoutes = require('./routes/classRequests');
 const attendanceRoutes = require('./routes/attendance');
+const paymentRoutes = require('./routes/payments');
 
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
@@ -113,6 +114,10 @@ app.use('/api/class-requests', classRequestRoutes);
 // Add specific CORS handling for attendance routes
 app.options('/api/attendance/*', cors(corsOptions));
 app.use('/api/attendance', attendanceRoutes);
+
+// Add specific CORS handling for payment routes
+app.options('/api/payments/*', cors(corsOptions));
+app.use('/api/payments', paymentRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
