@@ -276,7 +276,8 @@ exports.getAdminPaymentRequests = async (req, res) => {
             fullName: student.fullName,
             studentId: student.studentId,
             email: student.email,
-            contactNumber: student.contactNumber
+            contactNumber: student.contactNumber,
+            paymentStatus: student.paymentStatus
           },
           attendance,
           payment: existingPayment || null,
