@@ -757,7 +757,7 @@ exports.updatePaymentStatus = async (req, res) => {
     }
 
     // Set default admin note if not provided
-    const defaultAdminNote = `Payment status updated from ${student.paymentStatus} to ${paymentStatus}`;
+    const defaultAdminNote = `Payments & Behavior status changed. check it in your Profile..! `;
 
     // Update payment status
     student.paymentStatus = paymentStatus;
@@ -773,8 +773,8 @@ exports.updatePaymentStatus = async (req, res) => {
     await Notification.createNotification({
       recipient: student.userId._id,
       type: 'payment_status_change',
-      title: 'Payment Status Updated',
-      message: `Your payment status has been updated to ${paymentStatus}.`,
+      title: 'Payments & Behavior Status Updated',
+      message: `Your payments & behavior status has been Changed By admin. check it in your Profile and Attention About it.`,
       data: {
         studentId: student._id,
         adminNote: adminNote || defaultAdminNote
@@ -782,7 +782,7 @@ exports.updatePaymentStatus = async (req, res) => {
     });
 
     res.json({
-      message: 'Payment status updated successfully',
+      message: 'Payments & Behavior status updated successfully',
       student
     });
   } catch (err) {
