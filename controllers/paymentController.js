@@ -122,7 +122,7 @@ exports.submitPaymentRequest = async (req, res) => {
   }
 
   try {
-    const { classId, year, month, amount, receiptUrl, receiptPublicId, additionalNote } = req.body;
+    const { classId, year, month, amount, receiptUrl, receiptPublicId, additionalNote, attachments } = req.body;
 
     // Find student record using user ID
     const student = await Student.findOne({ userId: req.user.id });
@@ -157,6 +157,7 @@ exports.submitPaymentRequest = async (req, res) => {
       receiptUrl,
       receiptPublicId,
       additionalNote,
+      attachments: attachments || [], // Support multiple attachments
       attendanceData: attendance
     });
 
@@ -188,7 +189,7 @@ exports.updatePaymentRequest = async (req, res) => {
 
   try {
     const { paymentId } = req.params;
-    const { receiptUrl, receiptPublicId, additionalNote } = req.body;
+    const { receiptUrl, receiptPublicId, additionalNote, attachments } = req.body;
 
     // Find student record using user ID
     const student = await Student.findOne({ userId: req.user.id });
@@ -217,6 +218,9 @@ exports.updatePaymentRequest = async (req, res) => {
     payment.receiptUrl = receiptUrl;
     payment.receiptPublicId = receiptPublicId;
     payment.additionalNote = additionalNote;
+    if (attachments) {
+      payment.attachments = attachments; // Update attachments if provided
+    }
 
     await payment.save();
 

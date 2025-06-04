@@ -36,7 +36,7 @@ const PaymentSchema = new mongoose.Schema({
     min: 0
   },
 
-  // Receipt information
+  // Receipt information (backward compatibility)
   receiptUrl: {
     type: String,
     required: true,
@@ -46,6 +46,39 @@ const PaymentSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+
+  // Multiple attachments support (new feature)
+  attachments: {
+    type: [{
+      url: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      publicId: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      name: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      type: {
+        type: String,
+        enum: ['image', 'pdf'],
+        required: true
+      }
+    }],
+    default: [],
+    validate: {
+      validator: function(attachments) {
+        return attachments.length <= 2; // Maximum 2 attachments
+      },
+      message: 'Maximum 2 attachments allowed'
+    }
   },
 
   // Additional note from student
