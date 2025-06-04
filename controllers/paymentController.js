@@ -461,6 +461,15 @@ exports.getAllPaymentRequests = async (req, res) => {
 // @access  Private (Admin/Moderator)
 exports.updatePaymentRequestStatus = async (req, res) => {
   try {
+    const { validationResult } = require('express-validator');
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
     const { paymentId } = req.params;
     const { status, adminNote } = req.body;
 
@@ -474,8 +483,13 @@ exports.updatePaymentRequestStatus = async (req, res) => {
       return res.status(404).json({ message: 'Payment request not found' });
     }
 
-    // Update payment status
-    payment.status = status;
+    // Update payment status (convert to proper case for database)
+    const statusMap = {
+      'approved': 'Approved',
+      'rejected': 'Rejected',
+      'pending': 'Pending'
+    };
+    payment.status = statusMap[status] || status;
     payment.adminAction = {
       actionBy: req.user.id,
       actionDate: new Date(),
