@@ -438,7 +438,8 @@ exports.getAllPaymentRequests = async (req, res) => {
       amount: payment.amount,
       status: payment.status,
       receiptUrl: payment.receiptUrl,
-      note: payment.note,
+      attachments: payment.attachments || [], // Include attachments
+      note: payment.additionalNote, // Use additionalNote from model
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
       adminAction: payment.adminAction
@@ -571,6 +572,7 @@ exports.getMyPaymentRequests = async (req, res) => {
       amount: payment.amount,
       status: payment.status.toLowerCase(), // Convert to lowercase for frontend
       receiptUrl: payment.receiptUrl,
+      attachments: payment.attachments || [], // Include attachments
       note: payment.additionalNote, // Use additionalNote from the model
       createdAt: payment.createdAt,
       adminAction: payment.adminAction ? {
