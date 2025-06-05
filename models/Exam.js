@@ -65,16 +65,28 @@ const ExamSchema = new mongoose.Schema({
     type: Date,
     required: false // Optional exam date
   },
-  examTime: {
+  examStartTime: {
     type: String,
-    required: false, // Optional exam time
+    required: false, // Optional exam start time
     validate: {
       validator: function(v) {
         if (!v || v === '') return true; // Allow empty
         // Time format validation (HH:MM)
         return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v);
       },
-      message: 'Please enter a valid time in HH:MM format'
+      message: 'Please enter a valid start time in HH:MM format'
+    }
+  },
+  examEndTime: {
+    type: String,
+    required: false, // Optional exam end time
+    validate: {
+      validator: function(v) {
+        if (!v || v === '') return true; // Allow empty
+        // Time format validation (HH:MM)
+        return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(v);
+      },
+      message: 'Please enter a valid end time in HH:MM format'
     }
   },
   

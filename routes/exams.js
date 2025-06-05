@@ -31,7 +31,8 @@ const examValidation = [
     return /^https?:\/\/.+/.test(value);
   }),
   check('examDate', 'Please enter a valid date').optional().isISO8601(),
-  check('examTime', 'Please enter a valid time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  check('examStartTime', 'Please enter a valid start time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  check('examEndTime', 'Please enter a valid end time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   check('isPublished', 'isPublished must be a boolean').optional().isBoolean()
 ];
 
@@ -45,7 +46,8 @@ const examUpdateValidation = [
     return /^https?:\/\/.+/.test(value);
   }),
   check('examDate', 'Please enter a valid date').optional().isISO8601(),
-  check('examTime', 'Please enter a valid time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  check('examStartTime', 'Please enter a valid start time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  check('examEndTime', 'Please enter a valid end time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   check('isPublished', 'isPublished must be a boolean').optional().isBoolean()
 ];
 

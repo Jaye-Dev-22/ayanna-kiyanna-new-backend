@@ -4,6 +4,24 @@ const Class = require('../models/Class');
 const Student = require('../models/Student');
 const { validationResult } = require('express-validator');
 
+// Helper function to check if exam is overdue
+const isExamOverdue = (examDate, examEndTime) => {
+  if (!examDate || !examEndTime) return false;
+
+  const now = new Date();
+  const examDateTime = new Date(examDate);
+  const [hours, minutes] = examEndTime.split(':');
+  examDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+  return now > examDateTime;
+};
+
+// Helper function to check if exam has assigned marks
+const hasAssignedMarks = async (examId) => {
+  const marks = await ExamMark.findOne({ examId });
+  return !!marks;
+};
+
 // @desc    Create new exam
 // @route   POST /api/exams
 // @access  Private (Admin/Moderator)
@@ -18,7 +36,7 @@ const createExam = async (req, res) => {
       });
     }
 
-    const { title, description, guidelines, examLink, classId, examDate, examTime, isPublished } = req.body;
+    const { title, description, guidelines, examLink, classId, examDate, examStartTime, examEndTime, isPublished } = req.body;
 
     // Check if class exists
     const classData = await Class.findById(classId);
@@ -37,7 +55,8 @@ const createExam = async (req, res) => {
       examLink: examLink || undefined,
       classId,
       examDate: examDate || undefined,
-      examTime: examTime || undefined,
+      examStartTime: examStartTime || undefined,
+      examEndTime: examEndTime || undefined,
       isPublished: isPublished || false,
       createdBy: req.user.id
     });
@@ -85,9 +104,17 @@ const getClassExams = async (req, res) => {
       .populate('createdBy', 'fullName')
       .sort({ createdAt: -1 });
 
+    // Add overdue and marks status for each exam
+    const examsWithStatus = await Promise.all(exams.map(async (exam) => {
+      const examObj = exam.toObject();
+      examObj.isOverdue = isExamOverdue(exam.examDate, exam.examEndTime);
+      examObj.hasMarks = await hasAssignedMarks(exam._id);
+      return examObj;
+    }));
+
     res.json({
       success: true,
-      exams
+      exams: examsWithStatus
     });
 
   } catch (err) {
@@ -124,9 +151,14 @@ const getExamById = async (req, res) => {
       });
     }
 
+    // Add status information
+    const examObj = exam.toObject();
+    examObj.isOverdue = isExamOverdue(exam.examDate, exam.examEndTime);
+    examObj.hasMarks = await hasAssignedMarks(exam._id);
+
     res.json({
       success: true,
-      exam
+      exam: examObj
     });
 
   } catch (err) {
@@ -153,7 +185,7 @@ const updateExam = async (req, res) => {
       });
     }
 
-    const { title, description, guidelines, examLink, examDate, examTime, isPublished } = req.body;
+    const { title, description, guidelines, examLink, examDate, examStartTime, examEndTime, isPublished } = req.body;
 
     const exam = await Exam.findById(req.params.id);
     if (!exam) {
@@ -169,7 +201,8 @@ const updateExam = async (req, res) => {
     exam.guidelines = guidelines !== undefined ? guidelines : exam.guidelines;
     exam.examLink = examLink !== undefined ? examLink : exam.examLink;
     exam.examDate = examDate !== undefined ? examDate : exam.examDate;
-    exam.examTime = examTime !== undefined ? examTime : exam.examTime;
+    exam.examStartTime = examStartTime !== undefined ? examStartTime : exam.examStartTime;
+    exam.examEndTime = examEndTime !== undefined ? examEndTime : exam.examEndTime;
     
     // Handle publishing
     if (isPublished !== undefined) {
