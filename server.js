@@ -92,6 +92,7 @@ const assignmentRoutes = require('./routes/assignments');
 const examRoutes = require('./routes/exams');
 const resourceRoutes = require('./routes/resources');
 const announcementRoutes = require('./routes/announcements');
+const timeScheduleRoutes = require('./routes/timeSchedules');
 
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
@@ -144,6 +145,10 @@ app.use('/api/resources', resourceRoutes);
 // Add specific CORS handling for announcement routes
 app.options('/api/announcements/*', cors(corsOptions));
 app.use('/api/announcements', announcementRoutes);
+
+// Add specific CORS handling for time schedule routes
+app.options('/api/time-schedules/*', cors(corsOptions));
+app.use('/api/time-schedules', timeScheduleRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
