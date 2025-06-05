@@ -93,6 +93,7 @@ const examRoutes = require('./routes/exams');
 const resourceRoutes = require('./routes/resources');
 const announcementRoutes = require('./routes/announcements');
 const timeScheduleRoutes = require('./routes/timeSchedules');
+const onlineSessionRoutes = require('./routes/onlineSession');
 
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
@@ -149,6 +150,10 @@ app.use('/api/announcements', announcementRoutes);
 // Add specific CORS handling for time schedule routes
 app.options('/api/time-schedules/*', cors(corsOptions));
 app.use('/api/time-schedules', timeScheduleRoutes);
+
+// Add specific CORS handling for online session routes
+app.options('/api/online-sessions/*', cors(corsOptions));
+app.use('/api/online-sessions', onlineSessionRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
