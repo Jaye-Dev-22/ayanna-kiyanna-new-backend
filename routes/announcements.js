@@ -24,7 +24,11 @@ const announcementValidation = [
   check('classId', 'Class ID is required').not().isEmpty(),
   check('priority', 'Priority must be one of: Low, Medium, High, Urgent').optional()
     .isIn(['Low', 'Medium', 'High', 'Urgent']),
-  check('expiryDate', 'Please enter a valid date').optional().isISO8601()
+  check('attachments', 'Attachments must be an array').optional().isArray(),
+  check('expiryDate', 'Please enter a valid date').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return new Date(value).toString() !== 'Invalid Date';
+  })
 ];
 
 const announcementUpdateValidation = [
@@ -34,8 +38,12 @@ const announcementUpdateValidation = [
     .isLength({ min: 1, max: 2000 }),
   check('priority', 'Priority must be one of: Low, Medium, High, Urgent').optional()
     .isIn(['Low', 'Medium', 'High', 'Urgent']),
+  check('attachments', 'Attachments must be an array').optional().isArray(),
   check('isActive', 'isActive must be a boolean').optional().isBoolean(),
-  check('expiryDate', 'Please enter a valid date').optional().isISO8601()
+  check('expiryDate', 'Please enter a valid date').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return new Date(value).toString() !== 'Invalid Date';
+  })
 ];
 
 // Routes
