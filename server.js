@@ -99,6 +99,12 @@ const literatureRoutes = require('./routes/literature');
 const gradeRoutes = require('./routes/grades');
 const paperBankRoutes = require('./routes/paperBank');
 const paperStructureRoutes = require('./routes/paperStructures');
+const subjectGuidelinesRoutes = require('./routes/subjectGuidelines');
+const teacherHandbookRoutes = require('./routes/teacherHandbook');
+const videoLessonsRoutes = require('./routes/videoLessons');
+const othersRoutes = require('./routes/others');
+const academicInfoRoutes = require('./routes/academicInfo');
+const extracurricularRoutes = require('./routes/extracurricular');
 
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
@@ -179,6 +185,30 @@ app.use('/api/paperbank', paperBankRoutes);
 // Add specific CORS handling for paper structure routes
 app.options('/api/paper-structures/*', cors(corsOptions));
 app.use('/api/paper-structures', paperStructureRoutes);
+
+// Add specific CORS handling for subject guidelines routes
+app.options('/api/subject-guidelines/*', cors(corsOptions));
+app.use('/api/subject-guidelines', subjectGuidelinesRoutes);
+
+// Add specific CORS handling for teacher handbook routes
+app.options('/api/teacher-handbook/*', cors(corsOptions));
+app.use('/api/teacher-handbook', teacherHandbookRoutes);
+
+// Add specific CORS handling for video lessons routes
+app.options('/api/video-lessons/*', cors(corsOptions));
+app.use('/api/video-lessons', videoLessonsRoutes);
+
+// Add specific CORS handling for others routes
+app.options('/api/others/*', cors(corsOptions));
+app.use('/api/others', othersRoutes);
+
+// Add specific CORS handling for academic info routes
+app.options('/api/academic-info/*', cors(corsOptions));
+app.use('/api/academic-info', academicInfoRoutes);
+
+// Add specific CORS handling for extracurricular routes
+app.options('/api/extracurricular/*', cors(corsOptions));
+app.use('/api/extracurricular', extracurricularRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
