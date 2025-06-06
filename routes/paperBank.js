@@ -22,7 +22,7 @@ const paperValidation = [
   check('grade', 'Grade is required').not().isEmpty(),
   check('grade', 'Invalid grade').isIn(['Grade 9', 'Grade 10', 'Grade 11', 'A/L', 'සිංහල සාහිත්‍ය (කාණ්ඩ විෂය)']),
   check('paperType', 'Paper type is required').not().isEmpty(),
-  check('paperType', 'Invalid paper type').isIn(['Past Paper', 'Model Paper', 'Other']),
+  check('paperType', 'Invalid paper type').isIn(['Past Paper', 'Model Paper', 'අනුමාන ප්‍රශ්ණපත්‍ර', 'RAM Papers', 'Other']),
   check('paperYear', 'Paper year is required').not().isEmpty().trim(),
   check('paperPart', 'Paper part is required').not().isEmpty(),
   check('paperPart', 'Invalid paper part').isIn(['Part 1', 'Part 2', 'Part 3', 'Full Paper', 'Other']),

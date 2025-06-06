@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const paperBankSchema = new mongoose.Schema({
+const paperStructureSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
@@ -10,20 +10,15 @@ const paperBankSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  type: {
+    type: String,
+    required: true,
+    enum: ['Paper Structures', 'අනුමාන', 'Others']
+  },
   grade: {
     type: String,
     required: true,
-    enum: ['Grade 9', 'Grade 10', 'Grade 11', 'A/L', 'සිංහල සාහිත්‍ය (කාණ්ඩ විෂය)']
-  },
-  paperType: {
-    type: String,
-    required: true,
-    enum: ['Past Paper', 'Model Paper', 'අනුමාන ප්‍රශ්ණපත්‍ර', 'RAM Papers', 'Other']
-  },
-  paperYear: {
-    type: String,
-    required: true,
-    trim: true
+    enum: ['Grade 9', 'Grade 10', 'Grade 11', 'A/L', 'සිංහල සාහිත්‍යය (කාණ්ඩ විෂය)']
   },
   paperPart: {
     type: String,
@@ -64,6 +59,10 @@ const paperBankSchema = new mongoose.Schema({
       trim: true
     }
   }],
+  additionalNote: {
+    type: String,
+    trim: true
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -84,14 +83,28 @@ const paperBankSchema = new mongoose.Schema({
 });
 
 // Index for better query performance
-paperBankSchema.index({ grade: 1, paperType: 1, paperYear: 1, paperPart: 1 });
-paperBankSchema.index({ createdAt: 1 });
-paperBankSchema.index({ isActive: 1 });
+paperStructureSchema.index({ type: 1, grade: 1, paperPart: 1 });
+paperStructureSchema.index({ createdAt: 1 });
+paperStructureSchema.index({ isActive: 1 });
 
 // Update the updatedAt field before saving
-paperBankSchema.pre('save', function(next) {
+paperStructureSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
 
-module.exports = mongoose.model('PaperBank', paperBankSchema);
+// Custom validation to ensure at least one attachment or source link
+paperStructureSchema.pre('save', function(next) {
+  const hasAttachments = this.attachments && this.attachments.length > 0;
+  const hasSourceLinks = this.sourceLinks && this.sourceLinks.length > 0;
+  
+  if (!hasAttachments && !hasSourceLinks) {
+    const error = new Error('At least one attachment or source link is required');
+    error.name = 'ValidationError';
+    return next(error);
+  }
+  
+  next();
+});
+
+module.exports = mongoose.model('PaperStructure', paperStructureSchema);

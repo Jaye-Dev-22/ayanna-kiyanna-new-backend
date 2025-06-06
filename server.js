@@ -98,6 +98,7 @@ const grammarRoutes = require('./routes/grammar');
 const literatureRoutes = require('./routes/literature');
 const gradeRoutes = require('./routes/grades');
 const paperBankRoutes = require('./routes/paperBank');
+const paperStructureRoutes = require('./routes/paperStructures');
 
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
@@ -174,6 +175,10 @@ app.use('/api/grades', gradeRoutes);
 // Add specific CORS handling for paper bank routes
 app.options('/api/paperbank/*', cors(corsOptions));
 app.use('/api/paperbank', paperBankRoutes);
+
+// Add specific CORS handling for paper structure routes
+app.options('/api/paper-structures/*', cors(corsOptions));
+app.use('/api/paper-structures', paperStructureRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
