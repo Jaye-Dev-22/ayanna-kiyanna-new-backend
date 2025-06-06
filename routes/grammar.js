@@ -53,7 +53,23 @@ const fileValidation = [
   check('content')
     .optional()
     .isLength({ max: 10000 })
-    .withMessage('Content must be less than 10000 characters')
+    .withMessage('Content must be less than 10000 characters'),
+  check('sourceLinks')
+    .optional()
+    .isArray()
+    .withMessage('Source links must be an array'),
+  check('sourceLinks.*.title')
+    .optional()
+    .isLength({ max: 100 })
+    .withMessage('Source link title must be less than 100 characters'),
+  check('sourceLinks.*.url')
+    .optional()
+    .isURL()
+    .withMessage('Source link URL must be valid'),
+  check('sourceLinks.*.description')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Source link description must be less than 200 characters')
 ];
 
 const fileUpdateValidation = [
@@ -70,7 +86,23 @@ const fileUpdateValidation = [
   check('content')
     .optional()
     .isLength({ max: 10000 })
-    .withMessage('Content must be less than 10000 characters')
+    .withMessage('Content must be less than 10000 characters'),
+  check('sourceLinks')
+    .optional()
+    .isArray()
+    .withMessage('Source links must be an array'),
+  check('sourceLinks.*.title')
+    .optional()
+    .isLength({ max: 100 })
+    .withMessage('Source link title must be less than 100 characters'),
+  check('sourceLinks.*.url')
+    .optional()
+    .isURL()
+    .withMessage('Source link URL must be valid'),
+  check('sourceLinks.*.description')
+    .optional()
+    .isLength({ max: 200 })
+    .withMessage('Source link description must be less than 200 characters')
 ];
 
 // Folder Routes

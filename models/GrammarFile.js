@@ -57,7 +57,34 @@ const GrammarFileSchema = new mongoose.Schema({
       required: true
     }
   }],
-  
+
+  // Source Links (Optional - External links for references)
+  sourceLinks: [{
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100
+    },
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+      validate: {
+        validator: function(v) {
+          // Basic URL validation
+          return /^https?:\/\/.+/.test(v);
+        },
+        message: 'Please enter a valid URL'
+      }
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 200
+    }
+  }],
+
   // Folder Association
   folderId: {
     type: mongoose.Schema.Types.ObjectId,

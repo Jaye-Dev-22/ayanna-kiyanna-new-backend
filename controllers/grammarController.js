@@ -59,7 +59,7 @@ const getAllFolders = async (req, res) => {
   try {
     const folders = await GrammarFolder.find({ isActive: true })
       .populate('createdBy', 'fullName email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: 1 }); // Sort oldest first (1 = ascending)
 
     res.json({
       success: true,
@@ -198,7 +198,7 @@ const createFile = async (req, res) => {
       });
     }
 
-    const { title, description, content, attachments, folderId } = req.body;
+    const { title, description, content, attachments, sourceLinks, folderId } = req.body;
 
     // Check if folder exists
     const folder = await GrammarFolder.findById(folderId);
@@ -215,6 +215,7 @@ const createFile = async (req, res) => {
       description,
       content: content || '',
       attachments: attachments || [],
+      sourceLinks: sourceLinks || [],
       folderId,
       createdBy: req.user.id
     });
@@ -260,7 +261,7 @@ const getFolderFiles = async (req, res) => {
     const files = await GrammarFile.find({ folderId, isActive: true })
       .populate('createdBy', 'fullName email')
       .populate('folderId', 'title')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: 1 }); // Sort oldest first (1 = ascending)
 
     res.json({
       success: true,
@@ -318,7 +319,7 @@ const updateFile = async (req, res) => {
       });
     }
 
-    const { title, description, content, attachments } = req.body;
+    const { title, description, content, attachments, sourceLinks } = req.body;
 
     const file = await GrammarFile.findById(req.params.id);
     if (!file || !file.isActive) {
@@ -333,6 +334,7 @@ const updateFile = async (req, res) => {
     file.description = description;
     file.content = content || '';
     file.attachments = attachments || [];
+    file.sourceLinks = sourceLinks || [];
     file.updatedAt = Date.now();
 
     await file.save();
