@@ -53,43 +53,7 @@ const fileValidation = [
   check('content')
     .optional()
     .isLength({ max: 5000 })
-    .withMessage('Content must not exceed 5000 characters'),
-  check('attachments')
-    .optional()
-    .isArray()
-    .withMessage('Attachments must be an array'),
-  check('attachments.*.title')
-    .if(check('attachments').exists())
-    .notEmpty()
-    .withMessage('Attachment title is required'),
-  check('attachments.*.url')
-    .if(check('attachments').exists())
-    .notEmpty()
-    .withMessage('Attachment URL is required')
-    .isURL()
-    .withMessage('Invalid attachment URL'),
-  check('attachments.*.publicId')
-    .if(check('attachments').exists())
-    .notEmpty()
-    .withMessage('Attachment public ID is required'),
-  check('attachments.*.type')
-    .if(check('attachments').exists())
-    .isIn(['image', 'pdf'])
-    .withMessage('Attachment type must be image or pdf'),
-  check('sourceLinks')
-    .optional()
-    .isArray()
-    .withMessage('Source links must be an array'),
-  check('sourceLinks.*.title')
-    .if(check('sourceLinks').exists())
-    .notEmpty()
-    .withMessage('Source link title is required'),
-  check('sourceLinks.*.url')
-    .if(check('sourceLinks').exists())
-    .notEmpty()
-    .withMessage('Source link URL is required')
-    .isURL()
-    .withMessage('Invalid source link URL')
+    .withMessage('Content must not exceed 5000 characters')
 ];
 
 // Folder Routes
@@ -139,7 +103,7 @@ router.get('/files/:id', auth, getFileById);
 // @route   PUT /api/subject-guidelines/files/:id
 // @desc    Update subject guidelines file
 // @access  Private (Admin/Moderator)
-router.put('/files/:id', [adminAuth, ...fileValidation.slice(0, 4)], updateFile);
+router.put('/files/:id', [adminAuth, ...fileValidation.slice(0, 3)], updateFile);
 
 // @route   DELETE /api/subject-guidelines/files/:id
 // @desc    Delete subject guidelines file

@@ -103,7 +103,11 @@ const createFile = async (req, res) => {
     if (!folderExists) {
       return res.status(404).json({ success: false, message: 'Folder not found' });
     }
-    if ((!attachments || attachments.length === 0) && (!sourceLinks || sourceLinks.length === 0)) {
+    const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
+    const hasSourceLinks = sourceLinks && Array.isArray(sourceLinks) && sourceLinks.length > 0 &&
+                          sourceLinks.some(link => link.title && link.url);
+
+    if (!hasAttachments && !hasSourceLinks) {
       return res.status(400).json({ success: false, message: 'At least one attachment or source link is required' });
     }
     const file = new VideoLessonsFile({ title, description, content, attachments: attachments || [], sourceLinks: sourceLinks || [], folder, createdBy: req.user.id });
@@ -146,7 +150,11 @@ const updateFile = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Validation errors', errors: errors.array() });
     }
     const { title, description, content, attachments, sourceLinks } = req.body;
-    if ((!attachments || attachments.length === 0) && (!sourceLinks || sourceLinks.length === 0)) {
+    const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
+    const hasSourceLinks = sourceLinks && Array.isArray(sourceLinks) && sourceLinks.length > 0 &&
+                          sourceLinks.some(link => link.title && link.url);
+
+    if (!hasAttachments && !hasSourceLinks) {
       return res.status(400).json({ success: false, message: 'At least one attachment or source link is required' });
     }
     const file = await VideoLessonsFile.findByIdAndUpdate(req.params.id, { title, description, content, attachments: attachments || [], sourceLinks: sourceLinks || [] }, { new: true, runValidators: true }).populate([{ path: 'createdBy', select: 'fullName email' }, { path: 'folder', select: 'title' }]);

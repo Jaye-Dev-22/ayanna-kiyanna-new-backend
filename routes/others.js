@@ -25,7 +25,7 @@ router.delete('/folders/:id', adminAuth, deleteFolder);
 router.post('/files', [adminAuth, ...fileValidation], createFile);
 router.get('/folders/:folderId/files', auth, getFolderFiles);
 router.get('/files/:id', auth, getFileById);
-router.put('/files/:id', [adminAuth, ...fileValidation.slice(0, 4)], updateFile);
+router.put('/files/:id', [adminAuth, ...fileValidation.slice(0, 3)], updateFile);
 router.delete('/files/:id', adminAuth, deleteFile);
 
 module.exports = router;
