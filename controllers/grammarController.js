@@ -200,6 +200,30 @@ const createFile = async (req, res) => {
 
     const { title, description, content, attachments, sourceLinks, folderId } = req.body;
 
+    // Validate source links if provided
+    if (sourceLinks && Array.isArray(sourceLinks)) {
+      for (const link of sourceLinks) {
+        if (link.title && link.title.length > 100) {
+          return res.status(400).json({
+            success: false,
+            message: 'Source link title must be less than 100 characters'
+          });
+        }
+        if (link.url && !link.url.match(/^https?:\/\/.+/)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Source link URL must be valid (start with http:// or https://)'
+          });
+        }
+        if (link.description && link.description.length > 200) {
+          return res.status(400).json({
+            success: false,
+            message: 'Source link description must be less than 200 characters'
+          });
+        }
+      }
+    }
+
     // Check if folder exists
     const folder = await GrammarFolder.findById(folderId);
     if (!folder || !folder.isActive) {
@@ -320,6 +344,30 @@ const updateFile = async (req, res) => {
     }
 
     const { title, description, content, attachments, sourceLinks } = req.body;
+
+    // Validate source links if provided
+    if (sourceLinks && Array.isArray(sourceLinks)) {
+      for (const link of sourceLinks) {
+        if (link.title && link.title.length > 100) {
+          return res.status(400).json({
+            success: false,
+            message: 'Source link title must be less than 100 characters'
+          });
+        }
+        if (link.url && !link.url.match(/^https?:\/\/.+/)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Source link URL must be valid (start with http:// or https://)'
+          });
+        }
+        if (link.description && link.description.length > 200) {
+          return res.status(400).json({
+            success: false,
+            message: 'Source link description must be less than 200 characters'
+          });
+        }
+      }
+    }
 
     const file = await GrammarFile.findById(req.params.id);
     if (!file || !file.isActive) {
