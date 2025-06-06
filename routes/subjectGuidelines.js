@@ -56,6 +56,23 @@ const fileValidation = [
     .withMessage('Content must not exceed 5000 characters')
 ];
 
+const fileUpdateValidation = [
+  check('title')
+    .notEmpty()
+    .withMessage('Title is required')
+    .isLength({ min: 1, max: 200 })
+    .withMessage('Title must be between 1 and 200 characters'),
+  check('description')
+    .notEmpty()
+    .withMessage('Description is required')
+    .isLength({ min: 1, max: 1000 })
+    .withMessage('Description must be between 1 and 1000 characters'),
+  check('content')
+    .optional()
+    .isLength({ max: 5000 })
+    .withMessage('Content must not exceed 5000 characters')
+];
+
 // Folder Routes
 
 // @route   POST /api/subject-guidelines/folders
@@ -103,7 +120,7 @@ router.get('/files/:id', auth, getFileById);
 // @route   PUT /api/subject-guidelines/files/:id
 // @desc    Update subject guidelines file
 // @access  Private (Admin/Moderator)
-router.put('/files/:id', [adminAuth, ...fileValidation.slice(0, 3)], updateFile);
+router.put('/files/:id', [adminAuth, ...fileUpdateValidation], updateFile);
 
 // @route   DELETE /api/subject-guidelines/files/:id
 // @desc    Delete subject guidelines file
