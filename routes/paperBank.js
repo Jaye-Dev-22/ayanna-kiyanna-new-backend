@@ -20,7 +20,7 @@ const {
 const paperValidation = [
   check('title', 'Title is required').not().isEmpty().trim(),
   check('grade', 'Grade is required').not().isEmpty(),
-  check('grade', 'Invalid grade').isIn(['Grade 9', 'Grade 10', 'Grade 11', 'A/L']),
+  check('grade', 'Invalid grade').isIn(['Grade 9', 'Grade 10', 'Grade 11', 'A/L', 'සිංහල සාහිත්‍ය (කාණ්ඩ විෂය)']),
   check('paperType', 'Paper type is required').not().isEmpty(),
   check('paperType', 'Invalid paper type').isIn(['Past Paper', 'Model Paper', 'Other']),
   check('paperYear', 'Paper year is required').not().isEmpty().trim(),

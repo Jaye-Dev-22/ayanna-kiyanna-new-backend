@@ -13,7 +13,7 @@ const paperBankSchema = new mongoose.Schema({
   grade: {
     type: String,
     required: true,
-    enum: ['Grade 9', 'Grade 10', 'Grade 11', 'A/L']
+    enum: ['Grade 9', 'Grade 10', 'Grade 11', 'A/L', 'සිංහල සාහිත්‍ය (කාණ්ඩ විෂය)']
   },
   paperType: {
     type: String,
