@@ -103,12 +103,7 @@ const createFile = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Folder not found' });
     }
 
-    const hasAttachments = attachments && attachments.length > 0;
-    const hasSourceLinks = sourceLinks && sourceLinks.length > 0;
-
-    if (!hasAttachments && !hasSourceLinks) {
-      return res.status(400).json({ success: false, message: 'At least one attachment or source link is required' });
-    }
+    // Attachments and source links are optional
 
     const file = new OtherEntFile({
       title, description, content, attachments: attachments || [], sourceLinks: sourceLinks || [], folderId, createdBy: req.user.id
@@ -162,12 +157,7 @@ const updateFile = async (req, res) => {
     }
 
     const { title, description, content, attachments, sourceLinks } = req.body;
-    const hasAttachments = attachments && attachments.length > 0;
-    const hasSourceLinks = sourceLinks && sourceLinks.length > 0;
-
-    if (!hasAttachments && !hasSourceLinks) {
-      return res.status(400).json({ success: false, message: 'At least one attachment or source link is required' });
-    }
+    // Attachments and source links are optional
 
     const file = await OtherEntFile.findByIdAndUpdate(
       req.params.id,
