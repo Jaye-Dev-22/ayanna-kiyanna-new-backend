@@ -204,7 +204,8 @@ const toggleLike = async (req, res) => {
     }
 
     const existingLike = file.likes.find(like => like.user.toString() === req.user.id);
-    
+    const wasLiked = !!existingLike;
+
     if (existingLike) {
       // Unlike
       file.likes = file.likes.filter(like => like.user.toString() !== req.user.id);
@@ -214,8 +215,17 @@ const toggleLike = async (req, res) => {
     }
 
     await file.save();
-    await file.populate('likes.user', 'fullName email');
-    res.json({ success: true, data: { likes: file.likes, isLiked: !existingLike } });
+
+    // Populate the likes after saving
+    const populatedFile = await OtherEntFile.findById(req.params.id).populate('likes.user', 'fullName email');
+
+    res.json({
+      success: true,
+      data: {
+        likes: populatedFile.likes,
+        isLiked: !wasLiked
+      }
+    });
   } catch (error) {
     console.error('Error toggling like:', error);
     res.status(500).json({ success: false, message: 'Server error while toggling like' });
