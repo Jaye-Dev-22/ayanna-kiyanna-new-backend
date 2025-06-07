@@ -210,6 +210,19 @@ app.use('/api/academic-info', academicInfoRoutes);
 app.options('/api/extracurricular/*', cors(corsOptions));
 app.use('/api/extracurricular', extracurricularRoutes);
 
+// Add specific CORS handling for alphabet category routes
+app.options('/api/swara/*', cors(corsOptions));
+app.use('/api/swara', require('./routes/swara'));
+
+app.options('/api/viyanjana/*', cors(corsOptions));
+app.use('/api/viyanjana', require('./routes/viyanjana'));
+
+app.options('/api/akaradiya/*', cors(corsOptions));
+app.use('/api/akaradiya', require('./routes/akaradiya'));
+
+app.options('/api/aksharavinyasaya/*', cors(corsOptions));
+app.use('/api/aksharavinyasaya', require('./routes/aksharavinyasaya'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
