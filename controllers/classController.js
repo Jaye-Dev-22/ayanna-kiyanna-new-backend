@@ -595,6 +595,41 @@ exports.getNormalClasses = async (req, res) => {
   }
 };
 
+// Get public classes for Classes & Time Tables page
+exports.getPublicClasses = async (req, res) => {
+  try {
+    const classes = await Class.find({
+      type: 'Normal',
+      isActive: true
+    })
+      .populate({
+        path: 'createdBy',
+        select: 'fullName email',
+        options: { strictPopulate: false }
+      })
+      .sort({ grade: 1, date: 1, startTime: 1 });
+
+    // Add available spots calculation to each class
+    const classesWithSpots = classes.map(classItem => {
+      const enrolledCount = classItem.enrolledStudents ? classItem.enrolledStudents.length : 0;
+      return {
+        ...classItem.toObject(),
+        enrolledCount,
+        availableSpots: classItem.capacity - enrolledCount
+      };
+    });
+
+    res.json({
+      classes: classesWithSpots || [],
+      total: classesWithSpots ? classesWithSpots.length : 0
+    });
+  } catch (err) {
+    console.error('Error in getPublicClasses:', err.message);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 // Get available students for enrollment (not already enrolled in this class)
 exports.getAvailableStudents = async (req, res) => {
   try {

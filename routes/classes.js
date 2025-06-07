@@ -24,6 +24,7 @@ const {
   getEnrolledStudents,
   confirmMonitors,
   getNormalClasses,
+  getPublicClasses,
   bulkEnrollStudents
 } = require('../controllers/classController');
 
@@ -84,6 +85,11 @@ router.get('/', adminAuth, getAllClasses);
 // @desc    Get all normal category classes for filtering
 // @access  Private (Admin/Moderator)
 router.get('/normal-classes', adminAuth, getNormalClasses);
+
+// @route   GET /api/classes/public-classes
+// @desc    Get all normal active classes for public viewing
+// @access  Public
+router.get('/public-classes', getPublicClasses);
 
 // @route   GET /api/classes/grades
 // @desc    Get available grades for dropdown
