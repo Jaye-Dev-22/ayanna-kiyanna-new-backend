@@ -304,7 +304,7 @@ const updateComment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Comment not found' });
     }
 
-    // Check if user owns the comment
+    // Check if user owns the comment or is admin/moderator editing their own comment
     if (comment.user.toString() !== req.user.id) {
       return res.status(403).json({ success: false, message: 'Not authorized to edit this comment' });
     }
