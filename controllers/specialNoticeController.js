@@ -16,13 +16,14 @@ const createNotice = async (req, res) => {
       });
     }
 
-    const { title, content, attachment } = req.body;
+    const { title, content, attachment, sourceLinks } = req.body;
 
     // Create new notice
     const notice = new SpecialNotice({
       title,
       content,
       attachment,
+      sourceLinks: sourceLinks || [],
       createdBy: req.user.id
     });
 
@@ -114,7 +115,7 @@ const updateNotice = async (req, res) => {
       });
     }
 
-    const { title, content, attachment } = req.body;
+    const { title, content, attachment, sourceLinks } = req.body;
 
     const notice = await SpecialNotice.findById(req.params.id);
 
@@ -131,6 +132,7 @@ const updateNotice = async (req, res) => {
     if (attachment) {
       notice.attachment = attachment;
     }
+    notice.sourceLinks = sourceLinks || [];
 
     await notice.save();
 

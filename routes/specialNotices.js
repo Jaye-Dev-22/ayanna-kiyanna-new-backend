@@ -21,14 +21,16 @@ const noticeValidation = [
   body('title').trim().isLength({ min: 1, max: 200 }).withMessage('Title must be between 1 and 200 characters'),
   body('content').trim().isLength({ min: 1, max: 5000 }).withMessage('Content must be between 1 and 5000 characters'),
   body('attachment.url').optional().notEmpty().withMessage('Attachment URL cannot be empty if provided'),
-  body('attachment.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty if provided')
+  body('attachment.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty if provided'),
+  body('sourceLinks').optional().isArray().withMessage('Source links must be an array')
 ];
 
 const noticeUpdateValidation = [
   body('title').trim().isLength({ min: 1, max: 200 }).withMessage('Title must be between 1 and 200 characters'),
   body('content').trim().isLength({ min: 1, max: 5000 }).withMessage('Content must be between 1 and 5000 characters'),
   body('attachment.url').optional().notEmpty().withMessage('Attachment URL cannot be empty if provided'),
-  body('attachment.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty if provided')
+  body('attachment.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty if provided'),
+  body('sourceLinks').optional().isArray().withMessage('Source links must be an array')
 ];
 
 // Public routes (require authentication)

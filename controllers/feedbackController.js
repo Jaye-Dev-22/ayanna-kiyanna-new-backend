@@ -1,6 +1,36 @@
 const Feedback = require('../models/Feedback');
 const User = require('../models/User');
+const Student = require('../models/Student');
 const { validationResult } = require('express-validator');
+
+// Helper function to get user details with contact info
+const getUserWithContactInfo = async (userId) => {
+  const user = await User.findById(userId).select('fullName email role');
+  if (!user) return null;
+
+  // If user is a student, get contact info from Student schema
+  if (user.role === 'student') {
+    const student = await Student.findOne({ userId: userId }).select('contactNumber whatsappNumber');
+    return {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      contactNumber: student?.contactNumber || 'N/A',
+      whatsappNumber: student?.whatsappNumber || 'N/A'
+    };
+  }
+
+  // For non-students, return user info without contact numbers
+  return {
+    _id: user._id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    contactNumber: 'N/A',
+    whatsappNumber: 'N/A'
+  };
+};
 
 // @desc    Submit new feedback
 // @route   POST /api/feedback
@@ -30,13 +60,15 @@ const submitFeedback = async (req, res) => {
 
     await feedback.save();
 
-    // Populate user information
-    await feedback.populate('submittedBy', 'fullName email contactNumber whatsappNumber');
+    // Get user information with contact details
+    const userWithContact = await getUserWithContactInfo(req.user.id);
+    const feedbackWithUser = feedback.toObject();
+    feedbackWithUser.submittedBy = userWithContact;
 
     res.status(201).json({
       success: true,
       message: 'Feedback submitted successfully',
-      data: feedback
+      data: feedbackWithUser
     });
   } catch (error) {
     console.error('Error submitting feedback:', error);
@@ -52,17 +84,26 @@ const submitFeedback = async (req, res) => {
 // @access  Private
 const getMyFeedbacks = async (req, res) => {
   try {
-    const feedbacks = await Feedback.find({ 
+    const feedbacks = await Feedback.find({
       submittedBy: req.user.id,
-      isActive: true 
+      isActive: true
     })
-      .populate('submittedBy', 'fullName email contactNumber whatsappNumber')
       .populate('repliedBy', 'fullName email')
       .sort({ createdAt: -1 }); // Newest first
 
+    // Get user information with contact details for each feedback
+    const feedbacksWithUserInfo = await Promise.all(
+      feedbacks.map(async (feedback) => {
+        const userWithContact = await getUserWithContactInfo(feedback.submittedBy);
+        const feedbackObj = feedback.toObject();
+        feedbackObj.submittedBy = userWithContact;
+        return feedbackObj;
+      })
+    );
+
     res.json({
       success: true,
-      data: feedbacks
+      data: feedbacksWithUserInfo
     });
   } catch (error) {
     console.error('Error fetching user feedbacks:', error);
@@ -95,13 +136,22 @@ const getAllFeedbacks = async (req, res) => {
     }
 
     const feedbacks = await Feedback.find(filter)
-      .populate('submittedBy', 'fullName email contactNumber whatsappNumber')
       .populate('repliedBy', 'fullName email')
       .sort({ createdAt: -1 }); // Newest first
 
+    // Get user information with contact details for each feedback
+    const feedbacksWithUserInfo = await Promise.all(
+      feedbacks.map(async (feedback) => {
+        const userWithContact = await getUserWithContactInfo(feedback.submittedBy);
+        const feedbackObj = feedback.toObject();
+        feedbackObj.submittedBy = userWithContact;
+        return feedbackObj;
+      })
+    );
+
     res.json({
       success: true,
-      data: feedbacks
+      data: feedbacksWithUserInfo
     });
   } catch (error) {
     console.error('Error fetching all feedbacks:', error);
@@ -118,7 +168,6 @@ const getAllFeedbacks = async (req, res) => {
 const getFeedbackById = async (req, res) => {
   try {
     const feedback = await Feedback.findById(req.params.id)
-      .populate('submittedBy', 'fullName email contactNumber whatsappNumber')
       .populate('repliedBy', 'fullName email');
 
     if (!feedback || !feedback.isActive) {
@@ -130,7 +179,7 @@ const getFeedbackById = async (req, res) => {
 
     // Check if user can access this feedback
     const isAdmin = req.user.role === 'admin' || req.user.role === 'moderator';
-    const isOwner = feedback.submittedBy._id.toString() === req.user.id;
+    const isOwner = feedback.submittedBy.toString() === req.user.id;
 
     if (!isAdmin && !isOwner) {
       return res.status(403).json({
@@ -139,9 +188,14 @@ const getFeedbackById = async (req, res) => {
       });
     }
 
+    // Get user information with contact details
+    const userWithContact = await getUserWithContactInfo(feedback.submittedBy);
+    const feedbackObj = feedback.toObject();
+    feedbackObj.submittedBy = userWithContact;
+
     res.json({
       success: true,
-      data: feedback
+      data: feedbackObj
     });
   } catch (error) {
     console.error('Error fetching feedback:', error);
@@ -206,13 +260,15 @@ const updateFeedback = async (req, res) => {
 
     await feedback.save();
 
-    // Populate user information
-    await feedback.populate('submittedBy', 'fullName email contactNumber whatsappNumber');
+    // Get user information with contact details
+    const userWithContact = await getUserWithContactInfo(feedback.submittedBy);
+    const feedbackObj = feedback.toObject();
+    feedbackObj.submittedBy = userWithContact;
 
     res.json({
       success: true,
       message: 'Feedback updated successfully',
-      data: feedback
+      data: feedbackObj
     });
   } catch (error) {
     console.error('Error updating feedback:', error);
@@ -295,14 +351,17 @@ const replyToFeedback = async (req, res) => {
 
     await feedback.save();
 
-    // Populate user information
-    await feedback.populate('submittedBy', 'fullName email contactNumber whatsappNumber');
+    // Get user information with contact details
+    const userWithContact = await getUserWithContactInfo(feedback.submittedBy);
     await feedback.populate('repliedBy', 'fullName email');
+
+    const feedbackObj = feedback.toObject();
+    feedbackObj.submittedBy = userWithContact;
 
     res.json({
       success: true,
       message: 'Reply added successfully',
-      data: feedback
+      data: feedbackObj
     });
   } catch (error) {
     console.error('Error replying to feedback:', error);

@@ -54,6 +54,12 @@ const SpecialNoticeSchema = new mongoose.Schema({
       type: String
     }
   },
+
+  // Source Links (Optional)
+  sourceLinks: [{
+    type: String,
+    trim: true
+  }],
   
   // Questions and Answers
   questions: [QuestionSchema],
