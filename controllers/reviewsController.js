@@ -206,23 +206,27 @@ const toggleLike = async (req, res) => {
     const existingLike = file.likes.find(like => like.user.toString() === req.user.id);
     const wasLiked = !!existingLike;
 
+    let updatedFile;
     if (existingLike) {
-      // Unlike
-      file.likes = file.likes.filter(like => like.user.toString() !== req.user.id);
+      // Unlike - remove the like
+      updatedFile = await ReviewsFile.findByIdAndUpdate(
+        req.params.id,
+        { $pull: { likes: { user: req.user.id } } },
+        { new: true }
+      ).populate('likes.user', 'fullName email');
     } else {
-      // Like
-      file.likes.push({ user: req.user.id });
+      // Like - add the like
+      updatedFile = await ReviewsFile.findByIdAndUpdate(
+        req.params.id,
+        { $push: { likes: { user: req.user.id } } },
+        { new: true }
+      ).populate('likes.user', 'fullName email');
     }
-
-    await file.save();
-
-    // Populate the likes after saving
-    const populatedFile = await ReviewsFile.findById(req.params.id).populate('likes.user', 'fullName email');
 
     res.json({
       success: true,
       data: {
-        likes: populatedFile.likes,
+        likes: updatedFile.likes,
         isLiked: !wasLiked
       }
     });
