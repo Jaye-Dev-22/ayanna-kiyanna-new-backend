@@ -105,6 +105,9 @@ const videoLessonsRoutes = require('./routes/videoLessons');
 const othersRoutes = require('./routes/others');
 const academicInfoRoutes = require('./routes/academicInfo');
 const extracurricularRoutes = require('./routes/extracurricular');
+const photoBucketRoutes = require('./routes/photoBucket');
+const specialNoticesRoutes = require('./routes/specialNotices');
+const feedbackRoutes = require('./routes/feedback');
 
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
@@ -209,6 +212,18 @@ app.use('/api/academic-info', academicInfoRoutes);
 // Add specific CORS handling for extracurricular routes
 app.options('/api/extracurricular/*', cors(corsOptions));
 app.use('/api/extracurricular', extracurricularRoutes);
+
+// Add specific CORS handling for photo bucket routes
+app.options('/api/photo-bucket/*', cors(corsOptions));
+app.use('/api/photo-bucket', photoBucketRoutes);
+
+// Add specific CORS handling for special notices routes
+app.options('/api/special-notices/*', cors(corsOptions));
+app.use('/api/special-notices', specialNoticesRoutes);
+
+// Add specific CORS handling for feedback routes
+app.options('/api/feedback/*', cors(corsOptions));
+app.use('/api/feedback', feedbackRoutes);
 
 // Add specific CORS handling for alphabet category routes
 app.options('/api/swara/*', cors(corsOptions));
