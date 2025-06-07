@@ -20,16 +20,36 @@ const fileValidation = [
   body('description').trim().isLength({ min: 1, max: 2000 }).withMessage('Description must be between 1 and 2000 characters'),
   body('content').optional().trim().isLength({ max: 10000 }).withMessage('Content must not exceed 10000 characters'),
   body('folderId').isMongoId().withMessage('Valid folder ID is required'),
-  body('attachments').optional().isArray().withMessage('Attachments must be an array'),
-  body('sourceLinks').optional().isArray().withMessage('Source links must be an array')
+  body('attachments').optional().custom((value) => {
+    if (value !== undefined && !Array.isArray(value)) {
+      throw new Error('Attachments must be an array');
+    }
+    return true;
+  }),
+  body('sourceLinks').optional().custom((value) => {
+    if (value !== undefined && !Array.isArray(value)) {
+      throw new Error('Source links must be an array');
+    }
+    return true;
+  })
 ];
 
 const fileUpdateValidation = [
   body('title').trim().isLength({ min: 1, max: 200 }).withMessage('Title must be between 1 and 200 characters'),
   body('description').trim().isLength({ min: 1, max: 2000 }).withMessage('Description must be between 1 and 2000 characters'),
   body('content').optional().trim().isLength({ max: 10000 }).withMessage('Content must not exceed 10000 characters'),
-  body('attachments').optional().isArray().withMessage('Attachments must be an array'),
-  body('sourceLinks').optional().isArray().withMessage('Source links must be an array')
+  body('attachments').optional().custom((value) => {
+    if (value !== undefined && !Array.isArray(value)) {
+      throw new Error('Attachments must be an array');
+    }
+    return true;
+  }),
+  body('sourceLinks').optional().custom((value) => {
+    if (value !== undefined && !Array.isArray(value)) {
+      throw new Error('Source links must be an array');
+    }
+    return true;
+  })
 ];
 
 // Routes

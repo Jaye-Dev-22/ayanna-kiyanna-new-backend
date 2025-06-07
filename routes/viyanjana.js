@@ -48,12 +48,20 @@ const fileValidation = [
     .withMessage('Valid folder ID is required'),
   body('attachments')
     .optional()
-    .isArray()
-    .withMessage('Attachments must be an array'),
+    .custom((value) => {
+      if (value !== undefined && !Array.isArray(value)) {
+        throw new Error('Attachments must be an array');
+      }
+      return true;
+    }),
   body('sourceLinks')
     .optional()
-    .isArray()
-    .withMessage('Source links must be an array')
+    .custom((value) => {
+      if (value !== undefined && !Array.isArray(value)) {
+        throw new Error('Source links must be an array');
+      }
+      return true;
+    })
 ];
 
 const fileUpdateValidation = [
@@ -72,12 +80,20 @@ const fileUpdateValidation = [
     .withMessage('Content must not exceed 10000 characters'),
   body('attachments')
     .optional()
-    .isArray()
-    .withMessage('Attachments must be an array'),
+    .custom((value) => {
+      if (value !== undefined && !Array.isArray(value)) {
+        throw new Error('Attachments must be an array');
+      }
+      return true;
+    }),
   body('sourceLinks')
     .optional()
-    .isArray()
-    .withMessage('Source links must be an array')
+    .custom((value) => {
+      if (value !== undefined && !Array.isArray(value)) {
+        throw new Error('Source links must be an array');
+      }
+      return true;
+    })
 ];
 
 // Folder Routes
