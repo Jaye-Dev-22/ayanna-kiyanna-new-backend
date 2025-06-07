@@ -223,6 +223,18 @@ app.use('/api/akaradiya', require('./routes/akaradiya'));
 app.options('/api/aksharavinyasaya/*', cors(corsOptions));
 app.use('/api/aksharavinyasaya', require('./routes/aksharavinyasaya'));
 
+// Add specific CORS handling for reviews routes
+app.options('/api/reviews/*', cors(corsOptions));
+app.use('/api/reviews', require('./routes/reviews'));
+
+// Add specific CORS handling for appreciation routes
+app.options('/api/appreciation/*', cors(corsOptions));
+app.use('/api/appreciation', require('./routes/appreciation'));
+
+// Add specific CORS handling for otherEnt routes
+app.options('/api/otherEnt/*', cors(corsOptions));
+app.use('/api/otherEnt', require('./routes/otherEnt'));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
