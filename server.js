@@ -248,6 +248,10 @@ app.use('/api/delivery-charges', deliveryChargeRoutes);
 app.options('/api/ratings/*', cors(corsOptions));
 app.use('/api/ratings', require('./routes/ratings'));
 
+// Add specific CORS handling for analytics routes
+app.options('/api/analytics/*', cors(corsOptions));
+app.use('/api/analytics', require('./routes/analytics'));
+
 // Add specific CORS handling for alphabet category routes
 app.options('/api/swara/*', cors(corsOptions));
 app.use('/api/swara', require('./routes/swara'));
