@@ -109,6 +109,12 @@ const photoBucketRoutes = require('./routes/photoBucket');
 const specialNoticesRoutes = require('./routes/specialNotices');
 const feedbackRoutes = require('./routes/feedback');
 
+// E-commerce routes
+const productRoutes = require('./routes/products');
+const cartRoutes = require('./routes/cart');
+const orderRoutes = require('./routes/orders');
+const deliveryChargeRoutes = require('./routes/deliveryCharges');
+
 // Add specific CORS handling for auth routes
 app.options('/api/auth/*', cors(corsOptions));
 app.use('/api/auth', authRoutes);
@@ -224,6 +230,19 @@ app.use('/api/special-notices', specialNoticesRoutes);
 // Add specific CORS handling for feedback routes
 app.options('/api/feedback/*', cors(corsOptions));
 app.use('/api/feedback', feedbackRoutes);
+
+// Add specific CORS handling for e-commerce routes
+app.options('/api/products/*', cors(corsOptions));
+app.use('/api/products', productRoutes);
+
+app.options('/api/cart/*', cors(corsOptions));
+app.use('/api/cart', cartRoutes);
+
+app.options('/api/orders/*', cors(corsOptions));
+app.use('/api/orders', orderRoutes);
+
+app.options('/api/delivery-charges/*', cors(corsOptions));
+app.use('/api/delivery-charges', deliveryChargeRoutes);
 
 // Add specific CORS handling for alphabet category routes
 app.options('/api/swara/*', cors(corsOptions));
