@@ -20,11 +20,18 @@ exports.getAllProducts = async (req, res) => {
       sortBy = 'createdAt',
       sortOrder = 'desc',
       page = 1,
-      limit = 12
+      limit = 12,
+      includeInactive
     } = req.query;
 
     // Build filter object
-    const filter = { isActive: true };
+    const filter = {};
+
+    // For admin users with includeInactive=true, show all products
+    // Otherwise, only show active products
+    if (includeInactive !== 'true') {
+      filter.isActive = true;
+    }
 
     if (category && category !== 'all') {
       filter.category = category;
