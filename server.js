@@ -244,6 +244,10 @@ app.use('/api/orders', orderRoutes);
 app.options('/api/delivery-charges/*', cors(corsOptions));
 app.use('/api/delivery-charges', deliveryChargeRoutes);
 
+// Add specific CORS handling for ratings routes
+app.options('/api/ratings/*', cors(corsOptions));
+app.use('/api/ratings', require('./routes/ratings'));
+
 // Add specific CORS handling for alphabet category routes
 app.options('/api/swara/*', cors(corsOptions));
 app.use('/api/swara', require('./routes/swara'));

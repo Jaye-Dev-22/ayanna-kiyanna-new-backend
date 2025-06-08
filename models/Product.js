@@ -71,7 +71,31 @@ const ProductSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  
+
+  // Ratings System
+  ratings: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5
+    },
+    review: {
+      type: String,
+      trim: true,
+      maxlength: 500
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+
   // Metadata
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -102,6 +126,20 @@ ProductSchema.virtual('savingsAmount').get(function () {
     return this.price * this.discount / 100;
   }
   return 0;
+});
+
+// Virtual for average rating
+ProductSchema.virtual('averageRating').get(function () {
+  if (this.ratings && this.ratings.length > 0) {
+    const sum = this.ratings.reduce((acc, rating) => acc + rating.rating, 0);
+    return Math.round((sum / this.ratings.length) * 10) / 10; // Round to 1 decimal place
+  }
+  return 0;
+});
+
+// Virtual for total ratings count
+ProductSchema.virtual('totalRatings').get(function () {
+  return this.ratings ? this.ratings.length : 0;
 });
 
 // Ensure virtuals are included in JSON output

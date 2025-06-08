@@ -58,8 +58,9 @@ exports.getAllProducts = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     query = query.skip(skip).limit(parseInt(limit));
 
-    // Populate creator information
-    query = query.populate('createdBy', 'fullName email');
+    // Populate creator information and ratings
+    query = query.populate('createdBy', 'fullName email')
+                 .populate('ratings.user', 'fullName email');
 
     const products = await query;
 
@@ -87,7 +88,8 @@ exports.getAllProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('createdBy', 'fullName email');
+      .populate('createdBy', 'fullName email')
+      .populate('ratings.user', 'fullName email');
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
