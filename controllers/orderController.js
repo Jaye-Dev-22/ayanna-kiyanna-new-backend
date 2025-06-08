@@ -90,10 +90,18 @@ exports.createOrder = async (req, res) => {
     // Validate payment receipts if required
     if (paymentMethod === 'bank_transfer' && !paidInPerson) {
       if (!paymentReceipts || paymentReceipts.length === 0) {
-        return res.status(400).json({ message: 'Payment receipt is required' });
+        return res.status(400).json({ message: 'Payment receipt is required for bank transfer' });
       }
       if (paymentReceipts.length > 3) {
         return res.status(400).json({ message: 'Maximum 3 payment receipts allowed' });
+      }
+    }
+
+    // Additional validation for delivery info when delivery type is delivery
+    if (deliveryType === 'delivery') {
+      if (!deliveryInfo || !deliveryInfo.recipientName || !deliveryInfo.contactNumber ||
+          !deliveryInfo.address || !deliveryInfo.district) {
+        return res.status(400).json({ message: 'Complete delivery information is required for delivery orders' });
       }
     }
 

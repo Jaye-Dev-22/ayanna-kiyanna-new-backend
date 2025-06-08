@@ -21,21 +21,25 @@ const createOrderValidation = [
     .withMessage('Invalid payment method'),
   body('deliveryInfo.recipientName')
     .if(body('deliveryType').equals('delivery'))
+    .optional()
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Recipient name is required for delivery and must be between 1 and 100 characters'),
   body('deliveryInfo.contactNumber')
     .if(body('deliveryType').equals('delivery'))
+    .optional()
     .trim()
     .isLength({ min: 10, max: 15 })
     .withMessage('Contact number is required for delivery and must be between 10 and 15 characters'),
   body('deliveryInfo.address')
     .if(body('deliveryType').equals('delivery'))
+    .optional()
     .trim()
     .isLength({ min: 1, max: 500 })
     .withMessage('Address is required for delivery and must be between 1 and 500 characters'),
   body('deliveryInfo.district')
     .if(body('deliveryType').equals('delivery'))
+    .optional()
     .trim()
     .isLength({ min: 1 })
     .withMessage('District is required for delivery'),

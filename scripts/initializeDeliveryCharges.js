@@ -23,12 +23,21 @@ async function initializeDeliveryCharges() {
 
     console.log('Initializing delivery charges for all Sri Lankan districts...');
 
+    // Find an admin user or create a placeholder
+    const User = require('../models/User');
+    let adminUser = await User.findOne({ role: 'admin' });
+
+    if (!adminUser) {
+      console.log('No admin user found. Using placeholder ID.');
+      adminUser = { _id: new mongoose.Types.ObjectId() };
+    }
+
     // Create delivery charges for all districts
     const deliveryCharges = sriLankanDistricts.map(district => ({
       district,
       charge: DEFAULT_CHARGE,
       isActive: true,
-      createdBy: new mongoose.Types.ObjectId(), // Placeholder admin ID
+      createdBy: adminUser._id,
       createdAt: new Date(),
       updatedAt: new Date()
     }));
