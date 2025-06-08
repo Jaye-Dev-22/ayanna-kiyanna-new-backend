@@ -25,7 +25,8 @@ exports.createOrder = async (req, res) => {
       deliveryInfo,
       paymentMethod,
       paymentReceipts,
-      paidInPerson = false
+      paidInPerson = false,
+      adminPaymentInfo
     } = req.body;
 
     // Get user's cart
@@ -105,6 +106,13 @@ exports.createOrder = async (req, res) => {
       }
     }
 
+    // Validate admin payment info when paid in person
+    if (paidInPerson) {
+      if (!adminPaymentInfo || !adminPaymentInfo.recipientName || !adminPaymentInfo.contactNumber) {
+        return res.status(400).json({ message: 'Recipient name and contact number are required for admin cash payments' });
+      }
+    }
+
     // Get user details to ensure we have the email
     const User = require('../models/User');
     const userDetails = await User.findById(req.user.id);
@@ -137,6 +145,7 @@ exports.createOrder = async (req, res) => {
       paymentMethod,
       paymentReceipts: paymentReceipts || [],
       paidInPerson,
+      adminPaymentInfo: paidInPerson ? adminPaymentInfo : undefined,
       status: paidInPerson ? 'approved' : 'pending'
     });
 

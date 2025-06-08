@@ -153,7 +153,24 @@ const OrderSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  
+
+  // Admin Payment Information (when paid in person)
+  adminPaymentInfo: {
+    recipientName: {
+      type: String,
+      trim: true
+    },
+    contactNumber: {
+      type: String,
+      trim: true
+    },
+    adminNote: {
+      type: String,
+      trim: true,
+      maxlength: 500
+    }
+  },
+
   // Metadata
   createdAt: {
     type: Date,
