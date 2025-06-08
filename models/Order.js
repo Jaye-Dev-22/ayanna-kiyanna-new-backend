@@ -38,8 +38,8 @@ const OrderSchema = new mongoose.Schema({
   // Order Identification
   orderId: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    sparse: true // Allow null values but ensure uniqueness when present
   },
   
   // User Information
@@ -132,7 +132,7 @@ const OrderSchema = new mongoose.Schema({
   // Order Status
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected', 'completed'],
+    enum: ['pending', 'approved', 'rejected', 'completed', 'cancelled'],
     default: 'pending'
   },
   deliveryStatus: {
@@ -173,7 +173,7 @@ const OrderSchema = new mongoose.Schema({
 
 // Generate unique order ID
 OrderSchema.pre('save', function (next) {
-  if (this.isNew && !this.orderId) {
+  if (!this.orderId) {
     const timestamp = Date.now().toString();
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
     this.orderId = `AK-${timestamp.slice(-8)}-${random}`;

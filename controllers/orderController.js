@@ -105,10 +105,28 @@ exports.createOrder = async (req, res) => {
       }
     }
 
+    // Get user details to ensure we have the email
+    const User = require('../models/User');
+    const userDetails = await User.findById(req.user.id);
+
+    if (!userDetails) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log('Creating order for user:', userDetails.email);
+    console.log('Order data:', {
+      user: req.user.id,
+      userEmail: userDetails.email,
+      deliveryType,
+      paymentMethod,
+      paidInPerson,
+      totalAmount
+    });
+
     // Create order
     const order = new Order({
       user: req.user.id,
-      userEmail: req.user.email,
+      userEmail: userDetails.email,
       items: orderItems,
       subtotal,
       totalDiscount,
@@ -123,13 +141,19 @@ exports.createOrder = async (req, res) => {
     });
 
     await order.save();
+    console.log('Order saved successfully with ID:', order.orderId);
 
-    // Update product quantities
-    for (const item of cart.items) {
-      await Product.findByIdAndUpdate(
-        item.product._id,
-        { $inc: { availableQuantity: -item.quantity } }
-      );
+    // Only deduct inventory if order is automatically approved (admin paid in person)
+    if (order.status === 'approved') {
+      console.log('Order auto-approved, deducting inventory...');
+      for (const item of cart.items) {
+        await Product.findByIdAndUpdate(
+          item.product._id,
+          { $inc: { availableQuantity: -item.quantity } }
+        );
+      }
+    } else {
+      console.log('Order pending approval, inventory not deducted yet');
     }
 
     // Clear user's cart
@@ -141,8 +165,19 @@ exports.createOrder = async (req, res) => {
 
     res.status(201).json(order);
   } catch (err) {
-    console.error('Error creating order:', err.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error creating order:', err);
+
+    // If it's a validation error, send detailed error info
+    if (err.name === 'ValidationError') {
+      const validationErrors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({
+        message: 'Order validation failed',
+        errors: validationErrors,
+        details: err.errors
+      });
+    }
+
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
@@ -285,10 +320,53 @@ exports.updateOrderStatus = async (req, res) => {
 
     const { status, adminNote, deliveryStatus } = req.body;
 
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id).populate('items.product');
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const previousStatus = order.status;
+    console.log(`Updating order ${order.orderId} from ${previousStatus} to ${status}`);
+
+    // Handle inventory management based on status changes
+    if (status !== undefined && status !== previousStatus) {
+
+      // Case 1: Order being approved (pending/rejected → approved)
+      if (status === 'approved' && previousStatus !== 'approved') {
+        console.log('Order approved, deducting inventory...');
+
+        // Check if all products have sufficient stock
+        for (const item of order.items) {
+          const product = item.product;
+          if (product.availableQuantity < item.quantity) {
+            return res.status(400).json({
+              message: `Insufficient stock for ${product.name}. Available: ${product.availableQuantity}, Required: ${item.quantity}`
+            });
+          }
+        }
+
+        // Deduct inventory
+        for (const item of order.items) {
+          await Product.findByIdAndUpdate(
+            item.product._id,
+            { $inc: { availableQuantity: -item.quantity } }
+          );
+        }
+      }
+
+      // Case 2: Order being rejected/cancelled (approved → rejected)
+      else if ((status === 'rejected' || status === 'cancelled') && previousStatus === 'approved') {
+        console.log('Order rejected/cancelled, restoring inventory...');
+
+        // Restore inventory
+        for (const item of order.items) {
+          await Product.findByIdAndUpdate(
+            item.product._id,
+            { $inc: { availableQuantity: item.quantity } }
+          );
+        }
+      }
     }
 
     // Update order status
