@@ -264,6 +264,136 @@ const replyToMessage = async (req, res) => {
   }
 };
 
+// @desc    Edit reply to student message
+// @route   PUT /api/student-messages/:id/edit-reply
+// @access  Private (Admin/Moderator)
+const editReply = async (req, res) => {
+  try {
+    const { reply, replyAttachments } = req.body;
+
+    if (!reply || reply.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reply cannot be empty'
+      });
+    }
+
+    const message = await StudentMessage.findById(req.params.id);
+    if (!message || !message.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: 'Message not found'
+      });
+    }
+
+    if (!message.reply) {
+      return res.status(400).json({
+        success: false,
+        message: 'No reply exists to edit'
+      });
+    }
+
+    // Check if the current user is the one who replied or is admin
+    if (message.repliedBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to edit this reply'
+      });
+    }
+
+    message.reply = reply.trim();
+    message.replyAttachments = replyAttachments || [];
+    message.repliedAt = new Date(); // Update reply timestamp
+
+    await message.save();
+
+    // Get user information with contact details
+    const userWithContact = await getUserWithContactInfo(message.submittedBy);
+    await message.populate('repliedBy', 'fullName email');
+
+    const messageObj = message.toObject();
+    messageObj.submittedBy = userWithContact;
+
+    res.json({
+      success: true,
+      message: 'Reply updated successfully',
+      data: messageObj
+    });
+  } catch (error) {
+    console.error('Error editing reply to student message:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while editing reply'
+    });
+  }
+};
+
+// @desc    Update student message
+// @route   PUT /api/student-messages/:id
+// @access  Private (Message Owner - only if not replied)
+const updateMessage = async (req, res) => {
+  try {
+    const { about, message, attachments } = req.body;
+
+    const studentMessage = await StudentMessage.findById(req.params.id);
+    if (!studentMessage || !studentMessage.isActive) {
+      return res.status(404).json({
+        success: false,
+        message: 'Message not found'
+      });
+    }
+
+    // Check if user is the message owner
+    if (studentMessage.submittedBy.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this message'
+      });
+    }
+
+    // Check if message has been replied to
+    if (studentMessage.reply) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot edit message that has been replied to'
+      });
+    }
+
+    // Validate attachments count
+    if (attachments && attachments.length > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum 5 attachments are allowed'
+      });
+    }
+
+    // Update message
+    studentMessage.about = about;
+    studentMessage.message = message;
+    studentMessage.attachments = attachments || [];
+
+    await studentMessage.save();
+
+    // Get user information with contact details
+    const userWithContact = await getUserWithContactInfo(req.user.id);
+
+    const messageObj = studentMessage.toObject();
+    messageObj.submittedBy = userWithContact;
+
+    res.json({
+      success: true,
+      message: 'Message updated successfully',
+      data: messageObj
+    });
+  } catch (error) {
+    console.error('Error updating student message:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating message'
+    });
+  }
+};
+
 // @desc    Delete student message
 // @route   DELETE /api/student-messages/:id
 // @access  Private (Admin/Moderator or Message Owner)
@@ -278,11 +408,19 @@ const deleteMessage = async (req, res) => {
     }
 
     // Check if user is admin or the message owner
-    if (req.user.role !== 'admin' && req.user.role !== 'moderator' && 
+    if (req.user.role !== 'admin' && req.user.role !== 'moderator' &&
         message.submittedBy.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this message'
+      });
+    }
+
+    // Students can only delete if not replied, admins can delete anytime
+    if (req.user.role !== 'admin' && req.user.role !== 'moderator' && message.reply) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete message that has been replied to'
       });
     }
 
@@ -309,5 +447,7 @@ module.exports = {
   getAllMessages,
   getUnrepliedCount,
   replyToMessage,
+  editReply,
+  updateMessage,
   deleteMessage
 };

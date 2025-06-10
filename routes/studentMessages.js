@@ -10,6 +10,8 @@ const {
   getAllMessages,
   getUnrepliedCount,
   replyToMessage,
+  editReply,
+  updateMessage,
   deleteMessage
 } = require('../controllers/studentMessageController');
 
@@ -43,6 +45,11 @@ router.post('/', [auth, ...messageValidation], submitMessage);
 // @access  Private
 router.get('/my-messages', auth, getMyMessages);
 
+// @route   PUT /api/student-messages/:id
+// @desc    Update student message
+// @access  Private (Message Owner - only if not replied)
+router.put('/:id', [auth, ...messageValidation], updateMessage);
+
 // Admin routes (require admin/moderator role)
 
 // @route   GET /api/student-messages/all
@@ -59,6 +66,11 @@ router.get('/unreplied-count', adminAuth, getUnrepliedCount);
 // @desc    Reply to student message
 // @access  Private (Admin/Moderator)
 router.put('/:id/reply', [adminAuth, ...replyValidation], replyToMessage);
+
+// @route   PUT /api/student-messages/:id/edit-reply
+// @desc    Edit reply to student message
+// @access  Private (Admin/Moderator)
+router.put('/:id/edit-reply', [adminAuth, ...replyValidation], editReply);
 
 // @route   DELETE /api/student-messages/:id
 // @desc    Delete student message
