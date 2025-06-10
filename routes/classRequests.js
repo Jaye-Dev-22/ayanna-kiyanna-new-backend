@@ -11,6 +11,7 @@ const {
   createClassRequest,
   getStudentClassRequests,
   getAllClassRequests,
+  getPendingClassRequestsCount,
   approveClassRequest,
   rejectClassRequest,
   changeClassRequestStatus,
@@ -53,6 +54,11 @@ router.post('/', [auth, ...classRequestValidation], createClassRequest);
 // @desc    Get student's class requests
 // @access  Private (Student)
 router.get('/my-requests', auth, getStudentClassRequests);
+
+// @route   GET /api/class-requests/pending-count
+// @desc    Get count of pending class requests
+// @access  Private (Admin/Moderator)
+router.get('/pending-count', adminAuth, getPendingClassRequestsCount);
 
 // @route   GET /api/class-requests
 // @desc    Get all class requests (Admin)

@@ -99,6 +99,26 @@ exports.getStudentClassRequests = async (req, res) => {
   }
 };
 
+// Get count of pending class requests (Admin)
+exports.getPendingClassRequestsCount = async (req, res) => {
+  try {
+    const count = await ClassRequest.countDocuments({
+      status: 'Pending'
+    });
+
+    res.json({
+      success: true,
+      count
+    });
+  } catch (err) {
+    console.error('Error getting pending class requests count:', err.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while getting count'
+    });
+  }
+};
+
 // Get all class requests (Admin)
 exports.getAllClassRequests = async (req, res) => {
   try {
