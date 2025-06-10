@@ -108,6 +108,8 @@ const extracurricularRoutes = require('./routes/extracurricular');
 const photoBucketRoutes = require('./routes/photoBucket');
 const specialNoticesRoutes = require('./routes/specialNotices');
 const feedbackRoutes = require('./routes/feedback');
+const studentNoticesRoutes = require('./routes/studentNotices');
+const studentMessagesRoutes = require('./routes/studentMessages');
 
 // E-commerce routes
 const productRoutes = require('./routes/products');
@@ -230,6 +232,14 @@ app.use('/api/special-notices', specialNoticesRoutes);
 // Add specific CORS handling for feedback routes
 app.options('/api/feedback/*', cors(corsOptions));
 app.use('/api/feedback', feedbackRoutes);
+
+// Add specific CORS handling for student notices routes
+app.options('/api/student-notices/*', cors(corsOptions));
+app.use('/api/student-notices', studentNoticesRoutes);
+
+// Add specific CORS handling for student messages routes
+app.options('/api/student-messages/*', cors(corsOptions));
+app.use('/api/student-messages', studentMessagesRoutes);
 
 // Add specific CORS handling for e-commerce routes
 app.options('/api/products/*', cors(corsOptions));
