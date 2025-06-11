@@ -56,6 +56,15 @@ const statusChangeValidation = [
   })
 ];
 
+// @route   POST /api/admin/students/access-as-student
+// @desc    Admin access as student for admin view functionality
+// @access  Private (Admin/Moderator)
+router.post('/access-as-student', [
+  adminAuth,
+  check('studentId', 'Student ID is required').not().isEmpty(),
+  check('targetClassId', 'Target class ID is required').not().isEmpty()
+], accessAsStudent);
+
 // @route   GET /api/admin/students/available-classes
 // @desc    Get available classes for assignment
 // @access  Private (Admin/Moderator)
@@ -156,14 +165,5 @@ router.put(
   ],
   updatePaymentStatus
 );
-
-// @route   POST /api/admin/access-as-student
-// @desc    Admin access as student for admin view functionality
-// @access  Private (Admin/Moderator)
-router.post('/access-as-student', [
-  adminAuth,
-  check('studentId', 'Student ID is required').not().isEmpty(),
-  check('targetClassId', 'Target class ID is required').not().isEmpty()
-], accessAsStudent);
 
 module.exports = router;

@@ -871,10 +871,14 @@ exports.updateStudentProfile = async (req, res) => {
 // Admin access as student - for admin view functionality
 exports.accessAsStudent = async (req, res) => {
   try {
+    console.log('accessAsStudent called with:', req.body);
+    console.log('User role:', req.user?.role);
+
     const { studentId, targetClassId } = req.body;
 
     // Verify admin permissions
     if (req.user.role !== 'admin' && req.user.role !== 'moderator') {
+      console.log('Access denied for user role:', req.user.role);
       return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
     }
 
