@@ -84,6 +84,11 @@ router.get('/stats', adminAuth, getStudentStats);
 // @access  Private (Admin/Moderator)
 router.get('/:studentId', adminAuth, getStudentById);
 
+// @route   GET /api/admin/students/:studentId/profile
+// @desc    Get complete student profile with user details
+// @access  Private (Admin/Moderator)
+router.get('/:studentId/profile', adminAuth, getStudentById);
+
 // @route   PUT /api/admin/students/:studentId/approve
 // @desc    Approve student registration
 // @access  Private (Admin/Moderator)
