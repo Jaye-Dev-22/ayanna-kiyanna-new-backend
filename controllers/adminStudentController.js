@@ -279,22 +279,33 @@ exports.getStudentById = async (req, res) => {
     const { studentId } = req.params;
 
     const student = await Student.findById(studentId)
-      .populate('userId', 'email fullName emailVerified')
-      .populate('enrolledClasses', 'type grade date startTime endTime venue category capacity enrolledStudents platform')
+      .populate('userId', 'email fullName emailVerified role')
+      .populate({
+        path: 'enrolledClasses',
+        select: 'type grade date startTime endTime venue category capacity enrolledStudents platform isActive',
+        match: { isActive: { $ne: false } }
+      })
       .populate('adminAction.actionBy', 'fullName email');
 
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
 
-    // Add calculated fields to enrolled classes
+    // Filter out null/undefined classes and inactive classes
     const studentObj = student.toObject();
-    if (studentObj.enrolledClasses && studentObj.enrolledClasses.length > 0) {
-      studentObj.enrolledClasses = studentObj.enrolledClasses.map(classItem => ({
-        ...classItem,
-        enrolledCount: classItem.enrolledStudents ? classItem.enrolledStudents.length : 0,
-        availableSpots: classItem.capacity - (classItem.enrolledStudents ? classItem.enrolledStudents.length : 0)
-      }));
+    if (studentObj.enrolledClasses) {
+      studentObj.enrolledClasses = studentObj.enrolledClasses.filter(
+        classItem => classItem && classItem.isActive !== false
+      );
+
+      // Add calculated fields to enrolled classes
+      if (studentObj.enrolledClasses.length > 0) {
+        studentObj.enrolledClasses = studentObj.enrolledClasses.map(classItem => ({
+          ...classItem,
+          enrolledCount: classItem.enrolledStudents ? classItem.enrolledStudents.length : 0,
+          availableSpots: classItem.capacity - (classItem.enrolledStudents ? classItem.enrolledStudents.length : 0)
+        }));
+      }
     }
 
     res.json(studentObj);
