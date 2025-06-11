@@ -30,12 +30,15 @@ const createAttendanceSheet = async (req, res) => {
     }
 
     // Check if attendance sheet already exists for today (same date, regardless of time)
+    // Use Sri Lanka timezone (Asia/Colombo) to ensure correct date handling
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const sriLankaTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
+    const todayStart = new Date(sriLankaTime.getFullYear(), sriLankaTime.getMonth(), sriLankaTime.getDate(), 0, 0, 0, 0);
+    const todayEnd = new Date(sriLankaTime.getFullYear(), sriLankaTime.getMonth(), sriLankaTime.getDate(), 23, 59, 59, 999);
 
     console.log('Date check debug:', {
       now: now.toISOString(),
+      sriLankaTime: sriLankaTime.toISOString(),
       todayStart: todayStart.toISOString(),
       todayEnd: todayEnd.toISOString(),
       classId
@@ -437,7 +440,7 @@ const updateAttendanceSheet = async (req, res) => {
         if (existingRecord) {
           existingRecord.status = update.status;
           existingRecord.markedBy = req.user.id;
-          existingRecord.markedAt = new Date();
+          existingRecord.markedAt = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
         }
       });
     }
@@ -596,7 +599,7 @@ const updateAttendanceByMonitor = async (req, res) => {
       if (existingRecord) {
         existingRecord.status = update.status;
         existingRecord.markedBy = req.user.id;
-        existingRecord.markedAt = new Date();
+        existingRecord.markedAt = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
         if (update.status === 'Present') {
           presentCount++;
         }
@@ -613,7 +616,7 @@ const updateAttendanceByMonitor = async (req, res) => {
 
     // Lock the attendance for other monitors
     attendance.monitorUpdate.updatedBy = monitor._id;
-    attendance.monitorUpdate.updatedAt = new Date();
+    attendance.monitorUpdate.updatedAt = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
     attendance.monitorUpdate.markedPresentCount = presentCount;
     attendance.monitorUpdate.isLocked = true;
     attendance.status = 'Updated';
@@ -680,7 +683,9 @@ const deleteAttendanceSheet = async (req, res) => {
 // @access  Private (Admin/Moderator)
 const getAttendanceAnalytics = async (req, res) => {
   try {
-    const { year = new Date().getFullYear() } = req.query;
+    // Use Sri Lanka timezone for current year
+    const sriLankaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
+    const { year = sriLankaTime.getFullYear() } = req.query;
 
     // Get monthly attendance data
     const monthlyData = await Attendance.aggregate([
@@ -821,8 +826,10 @@ const getStudentAttendanceStats = async (req, res) => {
   try {
     const { studentId, classId } = req.params;
     const { month, year } = req.query;
-    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+    // Use Sri Lanka timezone for current date
+    const sriLankaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Colombo"}));
+    const currentMonth = month ? parseInt(month) : sriLankaTime.getMonth() + 1;
+    const currentYear = year ? parseInt(year) : sriLankaTime.getFullYear();
 
     // Validate student exists
     const student = await Student.findById(studentId);
