@@ -195,10 +195,12 @@ exports.login = async (req, res) => {
 // Get logged-in user
 exports.getMe = async (req, res) => {
   try {
+    console.log('getMe called with req.user:', req.user);
     const user = await User.findById(req.user.id).select('-password');
+    console.log('Found user:', user ? 'User found' : 'User not found');
     res.json(user);
   } catch (err) {
-    console.error(err.message);
+    console.error('getMe error:', err.message);
     res.status(500).send('Server error');
   }
 };

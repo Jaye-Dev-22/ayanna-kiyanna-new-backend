@@ -902,15 +902,18 @@ exports.accessAsStudent = async (req, res) => {
 
     // Generate a temporary token for the student session
     const jwt = require('jsonwebtoken');
+    const config = require('config');
     const studentToken = jwt.sign(
       {
-        id: student.userId._id,
-        role: 'student',
+        user: {
+          id: student.userId._id,
+          role: 'student'
+        },
         adminView: true,
         originalAdmin: req.user.id,
         studentId: student._id
       },
-      process.env.JWT_SECRET,
+      config.get('jwtSecret'),
       { expiresIn: '24h' }
     );
 

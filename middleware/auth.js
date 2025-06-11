@@ -14,9 +14,11 @@ module.exports = async (req, res, next) => {
   // Verify token
   try {
     const decoded = jwt.verify(token, config.get('jwtSecret'));
+    console.log('Auth middleware - decoded token:', decoded);
     req.user = decoded.user;
     next();
   } catch (err) {
+    console.error('Auth middleware error:', err.message);
     res.status(401).json({ message: 'Token is not valid. Logout and Sign Again.' });
   }
 };
