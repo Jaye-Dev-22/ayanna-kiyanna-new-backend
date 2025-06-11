@@ -49,7 +49,7 @@ const submitMessage = async (req, res) => {
       });
     }
 
-    const { about, message, attachments } = req.body;
+    const { about, message, attachments, sourceLinks } = req.body;
 
     // Validate attachments count
     if (attachments && attachments.length > 5) {
@@ -64,6 +64,7 @@ const submitMessage = async (req, res) => {
       about,
       message,
       attachments: attachments || [],
+      sourceLinks: sourceLinks ? sourceLinks.filter(link => link.trim() !== '') : [],
       submittedBy: req.user.id
     });
 
@@ -212,7 +213,7 @@ const getUnrepliedCount = async (req, res) => {
 // @access  Private (Admin/Moderator)
 const replyToMessage = async (req, res) => {
   try {
-    const { reply, replyAttachments } = req.body;
+    const { reply, replyAttachments, replySourceLinks } = req.body;
 
     if (!reply || reply.trim().length === 0) {
       return res.status(400).json({
@@ -238,6 +239,7 @@ const replyToMessage = async (req, res) => {
 
     message.reply = reply.trim();
     message.replyAttachments = replyAttachments || [];
+    message.replySourceLinks = replySourceLinks ? replySourceLinks.filter(link => link.trim() !== '') : [];
     message.repliedBy = req.user.id;
     message.repliedAt = new Date();
 
@@ -269,7 +271,7 @@ const replyToMessage = async (req, res) => {
 // @access  Private (Admin/Moderator)
 const editReply = async (req, res) => {
   try {
-    const { reply, replyAttachments } = req.body;
+    const { reply, replyAttachments, replySourceLinks } = req.body;
 
     if (!reply || reply.trim().length === 0) {
       return res.status(400).json({
@@ -303,6 +305,7 @@ const editReply = async (req, res) => {
 
     message.reply = reply.trim();
     message.replyAttachments = replyAttachments || [];
+    message.replySourceLinks = replySourceLinks ? replySourceLinks.filter(link => link.trim() !== '') : [];
     message.repliedAt = new Date(); // Update reply timestamp
 
     await message.save();
@@ -333,7 +336,7 @@ const editReply = async (req, res) => {
 // @access  Private (Message Owner - only if not replied)
 const updateMessage = async (req, res) => {
   try {
-    const { about, message, attachments } = req.body;
+    const { about, message, attachments, sourceLinks } = req.body;
 
     const studentMessage = await StudentMessage.findById(req.params.id);
     if (!studentMessage || !studentMessage.isActive) {
@@ -371,6 +374,7 @@ const updateMessage = async (req, res) => {
     studentMessage.about = about;
     studentMessage.message = message;
     studentMessage.attachments = attachments || [];
+    studentMessage.sourceLinks = sourceLinks ? sourceLinks.filter(link => link.trim() !== '') : [];
 
     await studentMessage.save();
 

@@ -22,7 +22,14 @@ const messageValidation = [
   body('attachments').optional().isArray({ max: 5 }).withMessage('Maximum 5 attachments are allowed'),
   body('attachments.*.url').optional().notEmpty().withMessage('Attachment URL cannot be empty'),
   body('attachments.*.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty'),
-  body('attachments.*.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type')
+  body('attachments.*.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type'),
+  body('sourceLinks').optional().isArray().withMessage('Source links must be an array'),
+  body('sourceLinks.*').optional().custom((value) => {
+    if (value && value.trim() !== '' && !value.match(/^https?:\/\/.+/)) {
+      throw new Error('Source link must be a valid URL starting with http:// or https://');
+    }
+    return true;
+  })
 ];
 
 const replyValidation = [
@@ -30,7 +37,14 @@ const replyValidation = [
   body('replyAttachments').optional().isArray().withMessage('Reply attachments must be an array'),
   body('replyAttachments.*.url').optional().notEmpty().withMessage('Reply attachment URL cannot be empty'),
   body('replyAttachments.*.publicId').optional().notEmpty().withMessage('Reply attachment public ID cannot be empty'),
-  body('replyAttachments.*.type').optional().isIn(['image', 'raw']).withMessage('Invalid reply attachment type')
+  body('replyAttachments.*.type').optional().isIn(['image', 'raw']).withMessage('Invalid reply attachment type'),
+  body('replySourceLinks').optional().isArray().withMessage('Reply source links must be an array'),
+  body('replySourceLinks.*').optional().custom((value) => {
+    if (value && value.trim() !== '' && !value.match(/^https?:\/\/.+/)) {
+      throw new Error('Reply source link must be a valid URL starting with http:// or https://');
+    }
+    return true;
+  })
 ];
 
 // Student routes (require authentication)

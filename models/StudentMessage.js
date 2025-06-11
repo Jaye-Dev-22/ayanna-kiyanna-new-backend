@@ -34,7 +34,13 @@ const StudentMessageSchema = new mongoose.Schema({
       type: String
     }
   }],
-  
+
+  // Source Links (Optional)
+  sourceLinks: [{
+    type: String,
+    trim: true
+  }],
+
   // Student Information (Auto-filled from User schema)
   submittedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -65,6 +71,10 @@ const StudentMessageSchema = new mongoose.Schema({
     originalName: {
       type: String
     }
+  }],
+  replySourceLinks: [{
+    type: String,
+    trim: true
   }],
   repliedBy: {
     type: mongoose.Schema.Types.ObjectId,

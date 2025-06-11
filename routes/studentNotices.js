@@ -22,7 +22,12 @@ const noticeValidation = [
   body('attachments.*.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty'),
   body('attachments.*.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type'),
   body('sourceLinks').optional().isArray().withMessage('Source links must be an array'),
-  body('sourceLinks.*').optional().isURL().withMessage('Invalid source link URL')
+  body('sourceLinks.*').optional().custom((value) => {
+    if (value && value.trim() !== '' && !value.match(/^https?:\/\/.+/)) {
+      throw new Error('Source link must be a valid URL starting with http:// or https://');
+    }
+    return true;
+  })
 ];
 
 const noticeUpdateValidation = [
@@ -34,7 +39,12 @@ const noticeUpdateValidation = [
   body('attachments.*.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty'),
   body('attachments.*.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type'),
   body('sourceLinks').optional().isArray().withMessage('Source links must be an array'),
-  body('sourceLinks.*').optional().isURL().withMessage('Invalid source link URL')
+  body('sourceLinks.*').optional().custom((value) => {
+    if (value && value.trim() !== '' && !value.match(/^https?:\/\/.+/)) {
+      throw new Error('Source link must be a valid URL starting with http:// or https://');
+    }
+    return true;
+  })
 ];
 
 // Public routes (require authentication)
