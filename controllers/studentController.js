@@ -394,3 +394,56 @@ exports.resetStudentPassword = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// Update own student profile
+exports.updateOwnProfile = async (req, res) => {
+  try {
+    const updateData = req.body;
+
+    // Remove fields that students shouldn't be able to update
+    delete updateData._id;
+    delete updateData.studentId;
+    delete updateData.userId;
+    delete updateData.paymentRole;
+    delete updateData.paymentStatus;
+    delete updateData.freeClasses;
+    delete updateData.enrolledClasses;
+    delete updateData.status;
+    delete updateData.createdAt;
+    delete updateData.email; // Students can't change their email
+
+    // Update the updatedAt field
+    updateData.updatedAt = new Date();
+
+    const updatedStudent = await Student.findOneAndUpdate(
+      { userId: req.user.id },
+      updateData,
+      { new: true, runValidators: true }
+    )
+    .populate('userId', 'email fullName emailVerified role')
+    .populate({
+      path: 'enrolledClasses',
+      select: 'type grade date startTime endTime venue category platform isActive',
+      match: { isActive: { $ne: false } }
+    });
+
+    if (!updatedStudent) {
+      return res.status(404).json({ message: 'Student profile not found' });
+    }
+
+    // Filter out null/undefined classes
+    if (updatedStudent.enrolledClasses) {
+      updatedStudent.enrolledClasses = updatedStudent.enrolledClasses.filter(
+        classItem => classItem && classItem.isActive !== false
+      );
+    }
+
+    res.json({
+      message: 'Profile updated successfully',
+      student: updatedStudent
+    });
+  } catch (err) {
+    console.error('Error updating student profile:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};

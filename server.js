@@ -83,6 +83,7 @@ const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');
 const studentRoutes = require('./routes/students');
 const adminStudentRoutes = require('./routes/adminStudents');
+const studentProfileRoutes = require('./routes/studentProfile');
 const notificationRoutes = require('./routes/notifications');
 const classRequestRoutes = require('./routes/classRequests');
 const attendanceRoutes = require('./routes/attendance');
@@ -133,6 +134,10 @@ app.use('/api/students', studentRoutes);
 // Add specific CORS handling for admin student routes
 app.options('/api/admin/students/*', cors(corsOptions));
 app.use('/api/admin/students', adminStudentRoutes);
+
+// Add specific CORS handling for student profile routes
+app.options('/api/student-profile/*', cors(corsOptions));
+app.use('/api/student-profile', studentProfileRoutes);
 
 // Add specific CORS handling for notification routes
 app.options('/api/notifications/*', cors(corsOptions));

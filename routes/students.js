@@ -15,7 +15,8 @@ const {
   getAllGrades,
   sendPasswordResetOTP,
   verifyPasswordResetOTP,
-  resetStudentPassword
+  resetStudentPassword,
+  updateOwnProfile
 } = require('../controllers/studentController');
 
 // Validation rules for student registration
@@ -64,6 +65,11 @@ router.post('/register', [auth, ...studentRegistrationValidation], registerStude
 // @desc    Get student profile
 // @access  Private (Student)
 router.get('/profile', auth, getStudentProfile);
+
+// @route   PUT /api/students/profile/update
+// @desc    Update own student profile
+// @access  Private (Student)
+router.put('/profile/update', [auth, ...studentRegistrationValidation], updateOwnProfile);
 
 // @route   POST /api/students/login
 // @desc    Student login with student password

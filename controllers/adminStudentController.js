@@ -790,3 +790,69 @@ exports.updatePaymentStatus = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// Update student profile
+exports.updateStudentProfile = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const updateData = req.body;
+
+    // Remove fields that shouldn't be updated directly
+    delete updateData._id;
+    delete updateData.studentId;
+    delete updateData.userId;
+    delete updateData.paymentRole;
+    delete updateData.paymentStatus;
+    delete updateData.freeClasses;
+    delete updateData.enrolledClasses;
+    delete updateData.status;
+    delete updateData.createdAt;
+
+    // Update the updatedAt field
+    updateData.updatedAt = new Date();
+
+    // If email is being updated, also update it in the User model
+    if (updateData.email) {
+      const student = await Student.findById(studentId);
+      if (student) {
+        await User.findByIdAndUpdate(student.userId, {
+          email: updateData.email
+        });
+      }
+    }
+
+    const updatedStudent = await Student.findByIdAndUpdate(
+      studentId,
+      updateData,
+      { new: true, runValidators: true }
+    )
+    .populate('userId', 'email fullName emailVerified role')
+    .populate({
+      path: 'enrolledClasses',
+      select: 'type grade date startTime endTime venue category platform isActive capacity enrolledStudents',
+      match: { isActive: { $ne: false } }
+    });
+
+    if (!updatedStudent) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Add calculated fields to enrolled classes
+    const studentObj = updatedStudent.toObject();
+    if (studentObj.enrolledClasses && studentObj.enrolledClasses.length > 0) {
+      studentObj.enrolledClasses = studentObj.enrolledClasses.map(classItem => ({
+        ...classItem,
+        enrolledCount: classItem.enrolledStudents ? classItem.enrolledStudents.length : 0,
+        availableSpots: classItem.capacity - (classItem.enrolledStudents ? classItem.enrolledStudents.length : 0)
+      }));
+    }
+
+    res.json({
+      message: 'Student profile updated successfully',
+      student: studentObj
+    });
+  } catch (err) {
+    console.error('Error updating student profile:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};

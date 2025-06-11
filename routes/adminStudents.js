@@ -21,7 +21,8 @@ const {
   getAvailableClassesForAssignment,
   getAvailableGrades,
   updatePaymentRole,
-  updatePaymentStatus
+  updatePaymentStatus,
+  updateStudentProfile
 } = require('../controllers/adminStudentController');
 
 // Validation rules for admin actions
@@ -88,6 +89,11 @@ router.get('/:studentId', adminAuth, getStudentById);
 // @desc    Get complete student profile with user details
 // @access  Private (Admin/Moderator)
 router.get('/:studentId/profile', adminAuth, getStudentById);
+
+// @route   PUT /api/admin/students/:studentId/update
+// @desc    Update student profile
+// @access  Private (Admin/Moderator)
+router.put('/:studentId/update', adminAuth, updateStudentProfile);
 
 // @route   PUT /api/admin/students/:studentId/approve
 // @desc    Approve student registration
