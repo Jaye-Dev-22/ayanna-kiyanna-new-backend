@@ -867,3 +867,74 @@ exports.updateStudentProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// Admin access as student - for admin view functionality
+exports.accessAsStudent = async (req, res) => {
+  try {
+    const { studentId, targetClassId } = req.body;
+
+    // Verify admin permissions
+    if (req.user.role !== 'admin' && req.user.role !== 'moderator') {
+      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
+    }
+
+    // Find the student
+    const student = await Student.findById(studentId)
+      .populate('userId', 'email fullName emailVerified role')
+      .populate('enrolledClasses', '_id type grade date startTime endTime venue category');
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Verify student is enrolled in the target class
+    const isEnrolled = student.enrolledClasses.some(
+      classItem => classItem._id.toString() === targetClassId
+    );
+
+    if (!isEnrolled) {
+      return res.status(400).json({ message: 'Student is not enrolled in the specified class' });
+    }
+
+    // Generate a temporary token for the student session
+    const jwt = require('jsonwebtoken');
+    const studentToken = jwt.sign(
+      {
+        id: student.userId._id,
+        role: 'student',
+        adminView: true,
+        originalAdmin: req.user.id,
+        studentId: student._id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Admin access as student granted',
+      studentToken: studentToken,
+      studentUserId: student.userId._id,
+      studentEmail: student.userId.email,
+      studentFullName: student.userId.fullName,
+      studentData: {
+        _id: student._id,
+        studentId: student.studentId,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        enrolledClasses: student.enrolledClasses,
+        // Include other necessary student data
+        surname: student.surname,
+        contactNumber: student.contactNumber,
+        whatsappNumber: student.whatsappNumber,
+        email: student.email,
+        selectedGrade: student.selectedGrade,
+        paymentRole: student.paymentRole,
+        paymentStatus: student.paymentStatus
+      }
+    });
+  } catch (err) {
+    console.error('Error in accessAsStudent:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
