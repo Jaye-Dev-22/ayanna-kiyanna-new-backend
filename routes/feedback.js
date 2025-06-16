@@ -24,8 +24,8 @@ const feedbackValidation = [
   body('attachment.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty if provided'),
   body('attachment.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type'),
   body('sourceLinks').optional().isArray().withMessage('Source links must be an array'),
-  body('sourceLinks.*.title').optional().trim().isLength({ max: 100 }).withMessage('Source link title must be max 100 characters'),
-  body('sourceLinks.*.url').optional().isURL().withMessage('Invalid source link URL')
+  body('sourceLinks.*.title').optional().trim().isLength({ min: 0, max: 100 }).withMessage('Source link title must be max 100 characters'),
+  body('sourceLinks.*.url').optional().trim().isLength({ min: 0 }).withMessage('Source link URL cannot be empty')
 ];
 
 const feedbackUpdateValidation = [
@@ -36,8 +36,8 @@ const feedbackUpdateValidation = [
   body('attachment.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty if provided'),
   body('attachment.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type'),
   body('sourceLinks').optional().isArray().withMessage('Source links must be an array'),
-  body('sourceLinks.*.title').optional().trim().isLength({ max: 100 }).withMessage('Source link title must be max 100 characters'),
-  body('sourceLinks.*.url').optional().isURL().withMessage('Invalid source link URL')
+  body('sourceLinks.*.title').optional().trim().isLength({ min: 0, max: 100 }).withMessage('Source link title must be max 100 characters'),
+  body('sourceLinks.*.url').optional().trim().isLength({ min: 0 }).withMessage('Source link URL cannot be empty')
 ];
 
 const replyValidation = [
@@ -46,8 +46,8 @@ const replyValidation = [
   body('replyAttachment.publicId').optional().notEmpty().withMessage('Reply attachment public ID cannot be empty if provided'),
   body('replyAttachment.type').optional().isIn(['image', 'raw']).withMessage('Invalid reply attachment type'),
   body('replySourceLinks').optional().isArray().withMessage('Reply source links must be an array'),
-  body('replySourceLinks.*.title').optional().trim().isLength({ max: 100 }).withMessage('Reply source link title must be max 100 characters'),
-  body('replySourceLinks.*.url').optional().isURL().withMessage('Invalid reply source link URL')
+  body('replySourceLinks.*.title').optional().trim().isLength({ min: 0, max: 100 }).withMessage('Reply source link title must be max 100 characters'),
+  body('replySourceLinks.*.url').optional().trim().isLength({ min: 0 }).withMessage('Reply source link URL cannot be empty')
 ];
 
 // User routes (require authentication)
