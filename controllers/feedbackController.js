@@ -47,7 +47,7 @@ const submitFeedback = async (req, res) => {
       });
     }
 
-    const { about, title, description, attachment } = req.body;
+    const { about, title, description, attachment, sourceLinks } = req.body;
 
     // Create new feedback
     const feedback = new Feedback({
@@ -55,6 +55,7 @@ const submitFeedback = async (req, res) => {
       title,
       description,
       attachment,
+      sourceLinks: sourceLinks || [],
       submittedBy: req.user.id
     });
 
@@ -248,7 +249,7 @@ const updateFeedback = async (req, res) => {
       });
     }
 
-    const { about, title, description, attachment } = req.body;
+    const { about, title, description, attachment, sourceLinks } = req.body;
 
     // Update fields
     feedback.about = about;
@@ -257,6 +258,7 @@ const updateFeedback = async (req, res) => {
     if (attachment) {
       feedback.attachment = attachment;
     }
+    feedback.sourceLinks = sourceLinks || [];
 
     await feedback.save();
 
@@ -327,7 +329,17 @@ const deleteFeedback = async (req, res) => {
 // @access  Private (Admin/Moderator)
 const replyToFeedback = async (req, res) => {
   try {
-    const { reply } = req.body;
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { reply, replyAttachment, replySourceLinks } = req.body;
 
     if (!reply || !reply.trim()) {
       return res.status(400).json({
@@ -348,6 +360,11 @@ const replyToFeedback = async (req, res) => {
     feedback.reply = reply.trim();
     feedback.repliedBy = req.user.id;
     feedback.repliedAt = new Date();
+
+    if (replyAttachment) {
+      feedback.replyAttachment = replyAttachment;
+    }
+    feedback.replySourceLinks = replySourceLinks || [];
 
     await feedback.save();
 

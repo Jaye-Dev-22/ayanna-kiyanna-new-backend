@@ -34,6 +34,19 @@ const FeedbackSchema = new mongoose.Schema({
       enum: ['image', 'raw'] // raw for PDFs
     }
   },
+
+  // Source Links (Optional - Array of URLs)
+  sourceLinks: [{
+    title: {
+      type: String,
+      trim: true,
+      maxlength: 100
+    },
+    url: {
+      type: String,
+      trim: true
+    }
+  }],
   
   // User Information (Auto-filled from User schema)
   submittedBy: {
@@ -55,6 +68,33 @@ const FeedbackSchema = new mongoose.Schema({
   repliedAt: {
     type: Date
   },
+
+  // Admin Reply Attachment (Optional - Image or PDF)
+  replyAttachment: {
+    url: {
+      type: String
+    },
+    publicId: {
+      type: String
+    },
+    type: {
+      type: String,
+      enum: ['image', 'raw'] // raw for PDFs
+    }
+  },
+
+  // Admin Reply Source Links (Optional - Array of URLs)
+  replySourceLinks: [{
+    title: {
+      type: String,
+      trim: true,
+      maxlength: 100
+    },
+    url: {
+      type: String,
+      trim: true
+    }
+  }],
   
   // Status
   isActive: {

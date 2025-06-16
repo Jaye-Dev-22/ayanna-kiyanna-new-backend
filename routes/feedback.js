@@ -22,7 +22,10 @@ const feedbackValidation = [
   body('description').trim().isLength({ min: 1, max: 2000 }).withMessage('Description must be between 1 and 2000 characters'),
   body('attachment.url').optional().notEmpty().withMessage('Attachment URL cannot be empty if provided'),
   body('attachment.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty if provided'),
-  body('attachment.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type')
+  body('attachment.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type'),
+  body('sourceLinks').optional().isArray().withMessage('Source links must be an array'),
+  body('sourceLinks.*.title').optional().trim().isLength({ max: 100 }).withMessage('Source link title must be max 100 characters'),
+  body('sourceLinks.*.url').optional().isURL().withMessage('Invalid source link URL')
 ];
 
 const feedbackUpdateValidation = [
@@ -31,7 +34,20 @@ const feedbackUpdateValidation = [
   body('description').trim().isLength({ min: 1, max: 2000 }).withMessage('Description must be between 1 and 2000 characters'),
   body('attachment.url').optional().notEmpty().withMessage('Attachment URL cannot be empty if provided'),
   body('attachment.publicId').optional().notEmpty().withMessage('Attachment public ID cannot be empty if provided'),
-  body('attachment.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type')
+  body('attachment.type').optional().isIn(['image', 'raw']).withMessage('Invalid attachment type'),
+  body('sourceLinks').optional().isArray().withMessage('Source links must be an array'),
+  body('sourceLinks.*.title').optional().trim().isLength({ max: 100 }).withMessage('Source link title must be max 100 characters'),
+  body('sourceLinks.*.url').optional().isURL().withMessage('Invalid source link URL')
+];
+
+const replyValidation = [
+  body('reply').trim().isLength({ min: 1, max: 2000 }).withMessage('Reply must be between 1 and 2000 characters'),
+  body('replyAttachment.url').optional().notEmpty().withMessage('Reply attachment URL cannot be empty if provided'),
+  body('replyAttachment.publicId').optional().notEmpty().withMessage('Reply attachment public ID cannot be empty if provided'),
+  body('replyAttachment.type').optional().isIn(['image', 'raw']).withMessage('Invalid reply attachment type'),
+  body('replySourceLinks').optional().isArray().withMessage('Reply source links must be an array'),
+  body('replySourceLinks.*.title').optional().trim().isLength({ max: 100 }).withMessage('Reply source link title must be max 100 characters'),
+  body('replySourceLinks.*.url').optional().isURL().withMessage('Invalid reply source link URL')
 ];
 
 // User routes (require authentication)
@@ -76,6 +92,6 @@ router.get('/admin/unreplied-count', adminAuth, getUnrepliedFeedbacksCount);
 // @route   PUT /api/feedback/:id/reply
 // @desc    Reply to feedback (Admin only)
 // @access  Private (Admin/Moderator)
-router.put('/:id/reply', adminAuth, replyToFeedback);
+router.put('/:id/reply', [adminAuth, ...replyValidation], replyToFeedback);
 
 module.exports = router;
