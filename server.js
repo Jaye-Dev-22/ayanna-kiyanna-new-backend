@@ -112,6 +112,7 @@ const feedbackRoutes = require('./routes/feedback');
 const studentNoticesRoutes = require('./routes/studentNotices');
 const studentMessagesRoutes = require('./routes/studentMessages');
 const usersRoutes = require('./routes/users');
+const contactRoutes = require('./routes/contact');
 
 // E-commerce routes
 const productRoutes = require('./routes/products');
@@ -250,6 +251,10 @@ app.use('/api/student-messages', studentMessagesRoutes);
 // Add specific CORS handling for users routes
 app.options('/api/users/*', cors(corsOptions));
 app.use('/api/users', usersRoutes);
+
+// Add specific CORS handling for contact routes
+app.options('/api/contact/*', cors(corsOptions));
+app.use('/api/contact', contactRoutes);
 
 // Add specific CORS handling for e-commerce routes
 app.options('/api/products/*', cors(corsOptions));

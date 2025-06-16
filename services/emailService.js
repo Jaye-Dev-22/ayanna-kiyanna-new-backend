@@ -222,6 +222,28 @@ class EmailService {
     }
   }
 
+  async sendContactNotificationEmail(adminEmail, contactData) {
+    try {
+      const mailOptions = {
+        from: {
+          name: 'Ayanna Kiyanna Sinhala Institute - Contact Form',
+          address: process.env.EMAIL_USER || config.get('email.user')
+        },
+        to: adminEmail,
+        subject: `New Contact Message from ${contactData.name} - Ayanna Kiyanna`,
+        html: this.getContactNotificationEmailTemplate(contactData),
+        replyTo: contactData.email
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('Contact notification email sent successfully:', result.messageId);
+      return { success: true, messageId: result.messageId };
+    } catch (error) {
+      console.error('Failed to send contact notification email:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async sendPasswordResetConfirmationEmail(email, fullName = '') {
     try {
       const mailOptions = {
@@ -763,6 +785,127 @@ class EmailService {
                 <p>Best regards,<br>
                 <strong>Ayanna Kiyanna Sinhala Institute Team</strong></p>
                 <p><small>This is an automated message. Please do not reply to this email.</small></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+  }
+
+  getContactNotificationEmailTemplate(contactData) {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Contact Message - Ayanna Kiyanna</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f4f4f4;
+            }
+            .container {
+                background: white;
+                padding: 30px;
+                border-radius: 10px;
+                box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .logo {
+                font-size: 28px;
+                font-weight: bold;
+                color: #e91e63;
+                margin-bottom: 10px;
+            }
+            .contact-box {
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                padding: 25px;
+                border-radius: 8px;
+                text-align: center;
+                margin: 20px 0;
+            }
+            .contact-details {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 20px 0;
+                border-left: 4px solid #e91e63;
+            }
+            .message-content {
+                background: #fff3cd;
+                border: 1px solid #ffeaa7;
+                color: #856404;
+                padding: 20px;
+                border-radius: 8px;
+                margin: 20px 0;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 30px;
+                color: #666;
+                font-size: 14px;
+            }
+            .detail-row {
+                margin-bottom: 10px;
+                padding: 8px 0;
+                border-bottom: 1px solid #eee;
+            }
+            .detail-label {
+                font-weight: bold;
+                color: #e91e63;
+                display: inline-block;
+                width: 120px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo">🌸 Ayanna Kiyanna Sinhala Institute</div>
+            </div>
+
+            <div class="contact-box">
+                <h2>📧 New Contact Message Received!</h2>
+                <p>Someone has sent a message through the website contact form</p>
+            </div>
+
+            <div class="contact-details">
+                <h3>Contact Information:</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Name:</span>
+                    <span>${contactData.name}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email:</span>
+                    <span><a href="mailto:${contactData.email}">${contactData.email}</a></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Submitted:</span>
+                    <span>${contactData.submittedAt}</span>
+                </div>
+            </div>
+
+            <div class="message-content">
+                <h3>Message:</h3>
+                <p style="white-space: pre-wrap; margin: 0;">${contactData.message}</p>
+            </div>
+
+            <p><strong>Action Required:</strong> Please respond to this inquiry as soon as possible. You can reply directly to this email to contact the sender.</p>
+
+            <div class="footer">
+                <p>Best regards,<br>
+                <strong>Ayanna Kiyanna Website System</strong></p>
+                <p><small>This is an automated notification from the website contact form.</small></p>
             </div>
         </div>
     </body>
