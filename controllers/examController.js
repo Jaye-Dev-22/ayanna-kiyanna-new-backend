@@ -28,18 +28,6 @@ const isExamOverdue = (examDate, examEndTime) => {
     // Set the exam end time (this is already in Sri Lankan time context)
     examDateInSriLanka.setUTCHours(examHours, examMinutes, 0, 0);
 
-    // Debug logging
-    console.log('=== EXAM OVERDUE DEBUG (Sri Lanka Time) ===');
-    console.log('Raw examDate from DB (UTC):', examDate);
-    console.log('Raw examEndTime:', examEndTime);
-    console.log('Current time UTC:', now.toISOString());
-    console.log('Current time Sri Lanka:', nowInSriLanka.toISOString());
-    console.log('Exam date Sri Lanka:', examDateInSriLanka.toISOString());
-    console.log('Parsed hours:', examHours, 'minutes:', examMinutes);
-    console.log('Comparison: nowInSriLanka > examDateInSriLanka =', nowInSriLanka > examDateInSriLanka);
-    console.log('Time difference (minutes):', (nowInSriLanka - examDateInSriLanka) / (1000 * 60));
-    console.log('=========================================');
-
     // Compare both times in Sri Lankan timezone
     return nowInSriLanka > examDateInSriLanka;
   } catch (error) {
