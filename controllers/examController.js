@@ -8,12 +8,28 @@ const { validationResult } = require('express-validator');
 const isExamOverdue = (examDate, examEndTime) => {
   if (!examDate || !examEndTime) return false;
 
-  const now = new Date();
-  const examDateTime = new Date(examDate);
-  const [hours, minutes] = examEndTime.split(':');
-  examDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+  try {
+    const now = new Date();
 
-  return now > examDateTime;
+    // Create exam end date/time properly
+    // Ensure we're working with the correct date by creating a new Date object
+    const examDateTime = new Date(examDate);
+
+    // Parse time string and set hours/minutes
+    const [hours, minutes] = examEndTime.split(':');
+    const examHours = parseInt(hours, 10);
+    const examMinutes = parseInt(minutes, 10);
+
+    // Set the time on the exam date
+    examDateTime.setHours(examHours, examMinutes, 0, 0);
+
+    // Return true only if current time is actually past the exam end time
+    return now > examDateTime;
+  } catch (error) {
+    console.error('Error in isExamOverdue:', error);
+    // If there's an error parsing dates, assume not overdue to be safe
+    return false;
+  }
 };
 
 // Helper function to check if exam has assigned marks
