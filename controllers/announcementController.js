@@ -15,8 +15,14 @@ cloudinary.config({
 // @access  Private (Admin/Moderator)
 const createAnnouncement = async (req, res) => {
   try {
+    console.log('=== BACKEND: CREATE ANNOUNCEMENT ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('User:', req.user);
+    console.log('Headers:', req.headers);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation errors',
@@ -25,6 +31,7 @@ const createAnnouncement = async (req, res) => {
     }
 
     const { title, description, attachments, priority, classId, expiryDate } = req.body;
+    console.log('Extracted fields:', { title, description, attachments, priority, classId, expiryDate });
 
     // Check if class exists
     const classData = await Class.findById(classId);
