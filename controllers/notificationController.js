@@ -108,6 +108,22 @@ exports.deleteNotification = async (req, res) => {
   }
 };
 
+// Delete all notifications
+exports.deleteAllNotifications = async (req, res) => {
+  try {
+    await Notification.deleteMany({
+      recipient: req.user.id
+    });
+
+    res.json({
+      message: 'All notifications deleted successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 // Mark all notifications as read
 exports.markAllAsRead = async (req, res) => {
   try {
