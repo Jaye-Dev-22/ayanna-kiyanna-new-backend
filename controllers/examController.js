@@ -9,22 +9,39 @@ const isExamOverdue = (examDate, examEndTime) => {
   if (!examDate || !examEndTime) return false;
 
   try {
-    const now = new Date();
+    // Sri Lankan timezone offset: UTC+5:30 (5.5 hours = 330 minutes)
+    const SRI_LANKA_OFFSET_MINUTES = 330;
 
-    // Create exam end date/time properly
-    // Ensure we're working with the correct date by creating a new Date object
-    const examDateTime = new Date(examDate);
+    // Get current time in Sri Lankan timezone
+    const now = new Date();
+    const nowInSriLanka = new Date(now.getTime() + (SRI_LANKA_OFFSET_MINUTES * 60 * 1000));
+
+    // Create exam date in Sri Lankan timezone
+    // The examDate from DB is in UTC, so we need to convert it to Sri Lankan time
+    const examDateInSriLanka = new Date(new Date(examDate).getTime() + (SRI_LANKA_OFFSET_MINUTES * 60 * 1000));
 
     // Parse time string and set hours/minutes
     const [hours, minutes] = examEndTime.split(':');
     const examHours = parseInt(hours, 10);
     const examMinutes = parseInt(minutes, 10);
 
-    // Set the time on the exam date
-    examDateTime.setHours(examHours, examMinutes, 0, 0);
+    // Set the exam end time (this is already in Sri Lankan time context)
+    examDateInSriLanka.setUTCHours(examHours, examMinutes, 0, 0);
 
-    // Return true only if current time is actually past the exam end time
-    return now > examDateTime;
+    // Debug logging
+    console.log('=== EXAM OVERDUE DEBUG (Sri Lanka Time) ===');
+    console.log('Raw examDate from DB (UTC):', examDate);
+    console.log('Raw examEndTime:', examEndTime);
+    console.log('Current time UTC:', now.toISOString());
+    console.log('Current time Sri Lanka:', nowInSriLanka.toISOString());
+    console.log('Exam date Sri Lanka:', examDateInSriLanka.toISOString());
+    console.log('Parsed hours:', examHours, 'minutes:', examMinutes);
+    console.log('Comparison: nowInSriLanka > examDateInSriLanka =', nowInSriLanka > examDateInSriLanka);
+    console.log('Time difference (minutes):', (nowInSriLanka - examDateInSriLanka) / (1000 * 60));
+    console.log('=========================================');
+
+    // Compare both times in Sri Lankan timezone
+    return nowInSriLanka > examDateInSriLanka;
   } catch (error) {
     console.error('Error in isExamOverdue:', error);
     // If there's an error parsing dates, assume not overdue to be safe
