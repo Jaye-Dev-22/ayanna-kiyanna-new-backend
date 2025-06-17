@@ -23,9 +23,10 @@ const announcementValidation = [
   check('description', 'Description is required and must be between 1 and 2000 characters')
     .isLength({ min: 1, max: 2000 }),
   check('classId', 'Class ID is required').not().isEmpty(),
-  // Temporarily disable priority validation for debugging
-  // check('priority', 'Priority must be one of: Low, Medium, High, Urgent').optional({ nullable: true, checkFalsy: true })
-  //   .isIn(['Low', 'Medium', 'High', 'Urgent']),
+  check('priority').optional().custom((value) => {
+    if (value === undefined || value === null || value === '') return true;
+    return ['Low', 'Medium', 'High', 'Urgent'].includes(value);
+  }).withMessage('Priority must be one of: Low, Medium, High, Urgent'),
   check('attachments', 'Attachments must be an array').optional().isArray(),
   check('expiryDate', 'Please enter a valid date').optional().custom((value) => {
     if (value === null || value === undefined || value === '') return true;
@@ -38,9 +39,10 @@ const announcementUpdateValidation = [
     .isLength({ min: 1, max: 200 }),
   check('description', 'Description must be between 1 and 2000 characters').optional()
     .isLength({ min: 1, max: 2000 }),
-  // Temporarily disable priority validation for debugging
-  // check('priority', 'Priority must be one of: Low, Medium, High, Urgent').optional({ nullable: true, checkFalsy: true })
-  //   .isIn(['Low', 'Medium', 'High', 'Urgent']),
+  check('priority').optional().custom((value) => {
+    if (value === undefined || value === null || value === '') return true;
+    return ['Low', 'Medium', 'High', 'Urgent'].includes(value);
+  }).withMessage('Priority must be one of: Low, Medium, High, Urgent'),
   check('attachments', 'Attachments must be an array').optional().isArray(),
   check('isActive', 'isActive must be a boolean').optional().isBoolean(),
   check('expiryDate', 'Please enter a valid date').optional().custom((value) => {
