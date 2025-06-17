@@ -12,7 +12,8 @@ const {
   getClassAnnouncements,
   getAnnouncementById,
   updateAnnouncement,
-  deleteAnnouncement
+  deleteAnnouncement,
+  getClassAnnouncementCount
 } = require('../controllers/announcementController');
 
 // Validation rules
@@ -57,6 +58,11 @@ router.post('/', [adminAuth, ...announcementValidation], createAnnouncement);
 // @desc    Get all announcements for a class
 // @access  Private (Admin/Moderator/Student)
 router.get('/class/:classId', auth, getClassAnnouncements);
+
+// @route   GET /api/announcements/class/:classId/count
+// @desc    Get announcement count for a class
+// @access  Private (Admin/Moderator/Student)
+router.get('/class/:classId/count', auth, getClassAnnouncementCount);
 
 // @route   GET /api/announcements/:id
 // @desc    Get announcement by ID

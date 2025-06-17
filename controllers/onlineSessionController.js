@@ -131,11 +131,11 @@ const getOnlineSessionsByClass = async (req, res) => {
     // Calculate pagination
     const skip = (page - 1) * limit;
 
-    // Get sessions with pagination
+    // Get sessions with pagination (newest first)
     const sessions = await OnlineSession.find(query)
       .populate('classId', 'grade category type')
       .populate('createdBy', 'fullName email')
-      .sort({ sessionDate: 1, startTime: 1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 

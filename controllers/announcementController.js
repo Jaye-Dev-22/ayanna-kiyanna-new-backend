@@ -242,10 +242,49 @@ const deleteAnnouncement = async (req, res) => {
   }
 };
 
+// @desc    Get announcement count for a class
+// @route   GET /api/announcements/class/:classId/count
+// @access  Private (Admin/Moderator/Student)
+const getClassAnnouncementCount = async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    // Build filter
+    const filter = {
+      classId,
+      isActive: true
+    };
+
+    // Filter out expired announcements
+    const now = new Date();
+    filter.$or = [
+      { expiryDate: { $exists: false } },
+      { expiryDate: null },
+      { expiryDate: { $gte: now } }
+    ];
+
+    const count = await Announcement.countDocuments(filter);
+
+    res.json({
+      success: true,
+      count
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: err.message
+    });
+  }
+};
+
 module.exports = {
   createAnnouncement,
   getClassAnnouncements,
   getAnnouncementById,
   updateAnnouncement,
-  deleteAnnouncement
+  deleteAnnouncement,
+  getClassAnnouncementCount
 };
