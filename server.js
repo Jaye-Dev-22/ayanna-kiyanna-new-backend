@@ -8,10 +8,10 @@ const app = express();
 
 // Enhanced CORS Configuration
 const allowedOrigins = [
+  'https://www.ayannakiyanna.com',
+  'https://ayanna-kiyanna-new-frintend.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
-  'https://ayanna-kiyanna-new-frintend.vercel.app',
-  'https://www.ayannakiyanna.com',
 ];
 
 const corsOptions = {
