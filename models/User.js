@@ -31,7 +31,7 @@ const UserSchema = new mongoose.Schema({
   },
   emailVerified: {
     type: Boolean,
-    default: false
+    default: true // Auto-verified - no OTP required
   },
   firebaseUid: {
     type: String,

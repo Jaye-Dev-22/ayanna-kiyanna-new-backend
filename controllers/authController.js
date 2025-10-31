@@ -78,50 +78,45 @@ exports.verifyEmailOTP = async (req, res) => {
   }
 };
 
-// Register new user (requires email verification)
+// Register new user (NO OTP verification required - direct registration)
 exports.register = async (req, res) => {
-  const { email, fullName, password, emailVerified } = req.body;
+  const { email, fullName, password } = req.body;
 
   try {
+    // Validate request
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     // Check if user exists
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Check if email was verified (for regular registration)
-    if (!emailVerified) {
-      return res.status(400).json({ message: 'Email verification required before registration' });
-    }
-
-    // Verify that OTP was actually verified for this email
-    const verifiedOTP = await OTP.findOne({
-      email,
-      purpose: 'email_verification',
-      verified: true
-    });
-
-    if (!verifiedOTP) {
-      return res.status(400).json({ message: 'Email verification not found. Please verify your email first.' });
-    }
-
-    // Create new user with verified email
+    // Create new user with verified email (no OTP required)
     user = new User({
       email,
       fullName,
       password,
       role: 'user', // Default role
-      emailVerified: true
+      emailVerified: true // Automatically verified
     });
 
     // Save user
     await user.save();
 
-    // Clean up verified OTP
-    await OTP.deleteMany({ email, purpose: 'email_verification' });
+    console.log(`✅ New user registered: ${email} (auto-verified)`);
 
-    // Send welcome email
-    await emailService.sendWelcomeEmail(email, fullName);
+    // Send welcome email (optional - no OTP)
+    try {
+      await emailService.sendWelcomeEmail(email, fullName);
+      console.log(`📧 Welcome email sent to: ${email}`);
+    } catch (emailError) {
+      // Don't fail registration if welcome email fails
+      console.error('⚠️ Failed to send welcome email:', emailError.message);
+    }
 
     // Create JWT payload
     const payload = {
@@ -144,8 +139,8 @@ exports.register = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Registration error:', err.message);
+    res.status(500).json({ message: 'Server error during registration' });
   }
 };
 
