@@ -9,48 +9,103 @@ class EmailService {
 
   initializeTransporter() {
     try {
-      // For development, use Gmail SMTP
-      // In production, you should use a proper email service like SendGrid, AWS SES, etc.
+      // Enhanced Gmail SMTP configuration with better timeout and TLS settings
+      // For production, consider using SendGrid, AWS SES, or other professional email services
       this.transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // Use STARTTLS
         auth: {
           user: process.env.EMAIL_USER || config.get('email.user'),
           pass: process.env.EMAIL_PASS || config.get('email.pass')
-        }
+        },
+        tls: {
+          ciphers: 'SSLv3',
+          rejectUnauthorized: false
+        },
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 10000,
+        socketTimeout: 30000, // 30 seconds
+        pool: true, // Use connection pooling
+        maxConnections: 5,
+        maxMessages: 100,
+        rateDelta: 1000,
+        rateLimit: 5,
+        debug: true, // Enable debug logs
+        logger: true // Enable logger
       });
 
-      // Verify connection
+      // Verify connection with timeout
+      const verifyTimeout = setTimeout(() => {
+        console.log('⚠️ Email service verification is taking longer than expected...');
+        console.log('This might indicate network issues or Gmail blocking the connection.');
+        console.log('Consider using SendGrid or another email service for production.');
+      }, 5000);
+
       this.transporter.verify((error, success) => {
+        clearTimeout(verifyTimeout);
         if (error) {
-          console.log('Email service error:', error.message);
+          console.log('❌ Email service error:', error.message);
+          console.log('Error code:', error.code);
           console.log('Please check your email configuration in config/default.json');
+          console.log('');
+          console.log('Troubleshooting steps:');
+          console.log('1. Verify EMAIL_USER and EMAIL_PASS environment variables are set on Render');
+          console.log('2. Ensure you are using a Gmail App Password (not your regular password)');
+          console.log('3. Check if 2-Step Verification is enabled on your Gmail account');
+          console.log('4. Consider switching to SendGrid for better reliability');
         } else {
           console.log('✅ Email service is ready and connected');
+          console.log('📧 Using email:', process.env.EMAIL_USER || config.get('email.user'));
         }
       });
     } catch (error) {
-      console.error('Failed to initialize email service:', error);
+      console.error('❌ Failed to initialize email service:', error);
     }
   }
 
-  async sendOTPEmail(email, otp, fullName = '') {
-    try {
-      const mailOptions = {
-        from: {
-          name: 'Ayanna Kiyanna Sinhala Institute',
-          address: process.env.EMAIL_USER || config.get('email.user')
-        },
-        to: email,
-        subject: 'Email Verification - Ayanna Kiyanna Sinhala Institute',
-        html: this.getOTPEmailTemplate(otp, fullName)
-      };
+  async sendOTPEmail(email, otp, fullName = '', retries = 3) {
+    console.log(`📧 Attempting to send OTP email to: ${email}`);
 
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('OTP email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
-    } catch (error) {
-      console.error('Failed to send OTP email:', error);
-      return { success: false, error: error.message };
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const mailOptions = {
+          from: {
+            name: 'Ayanna Kiyanna Sinhala Institute',
+            address: process.env.EMAIL_USER || config.get('email.user')
+          },
+          to: email,
+          subject: 'Email Verification - Ayanna Kiyanna Sinhala Institute',
+          html: this.getOTPEmailTemplate(otp, fullName),
+          // Add timeout for individual email send
+          timeout: 25000 // 25 seconds
+        };
+
+        console.log(`📤 Sending email (attempt ${attempt}/${retries})...`);
+        const result = await this.transporter.sendMail(mailOptions);
+        console.log('✅ OTP email sent successfully:', result.messageId);
+        return { success: true, messageId: result.messageId };
+      } catch (error) {
+        console.error(`❌ Failed to send OTP email (attempt ${attempt}/${retries}):`, error.message);
+        console.error('Error code:', error.code);
+
+        // If this is the last attempt, return the error
+        if (attempt === retries) {
+          console.error('❌ All retry attempts exhausted. Email sending failed.');
+          console.error('Suggestion: Check Render environment variables or switch to SendGrid');
+          return {
+            success: false,
+            error: error.message,
+            code: error.code,
+            suggestion: 'Please verify your email configuration or contact support'
+          };
+        }
+
+        // Wait before retrying (exponential backoff)
+        const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
     }
   }
 
