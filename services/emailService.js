@@ -1,22 +1,60 @@
 const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const config = require('config');
 
 class EmailService {
   constructor() {
     this.transporter = null;
-    this.initializeTransporter();
+    this.useSendGrid = false;
+    this.fromEmail = '';
+    this.fromName = '';
+    this.initializeEmailService();
   }
 
-  initializeTransporter() {
+  initializeEmailService() {
+    // Check if SendGrid should be used (preferred for production)
+    const sendGridApiKey = process.env.SENDGRID_API_KEY;
+
+    if (sendGridApiKey) {
+      this.initializeSendGrid(sendGridApiKey);
+    } else {
+      console.log('⚠️ SENDGRID_API_KEY not found, falling back to Gmail SMTP');
+      console.log('For better reliability, consider using SendGrid in production');
+      this.initializeGmailSMTP();
+    }
+  }
+
+  initializeSendGrid(apiKey) {
     try {
+      sgMail.setApiKey(apiKey);
+      this.useSendGrid = true;
+      this.fromEmail = process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_USER || config.get('email.user');
+      this.fromName = process.env.SENDGRID_FROM_NAME || 'Ayanna Kiyanna Sinhala Institute';
+
+      console.log('✅ SendGrid email service initialized');
+      console.log('📧 Using SendGrid with email:', this.fromEmail);
+      console.log('📤 From name:', this.fromName);
+      console.log('🎯 Email provider: SendGrid (Production-ready)');
+    } catch (error) {
+      console.error('❌ Failed to initialize SendGrid:', error);
+      console.log('Falling back to Gmail SMTP...');
+      this.initializeGmailSMTP();
+    }
+  }
+
+  initializeGmailSMTP() {
+    try {
+      this.useSendGrid = false;
+      this.fromEmail = process.env.EMAIL_USER || config.get('email.user');
+      this.fromName = 'Ayanna Kiyanna Sinhala Institute';
+
       // Enhanced Gmail SMTP configuration with better timeout and TLS settings
-      // For production, consider using SendGrid, AWS SES, or other professional email services
       this.transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 587,
         secure: false, // Use STARTTLS
         auth: {
-          user: process.env.EMAIL_USER || config.get('email.user'),
+          user: this.fromEmail,
           pass: process.env.EMAIL_PASS || config.get('email.pass')
         },
         tls: {
@@ -35,69 +73,108 @@ class EmailService {
         logger: true // Enable logger
       });
 
+      console.log('🎯 Email provider: Gmail SMTP (Development)');
+      console.log('📧 Using email:', this.fromEmail);
+
       // Verify connection with timeout
       const verifyTimeout = setTimeout(() => {
         console.log('⚠️ Email service verification is taking longer than expected...');
         console.log('This might indicate network issues or Gmail blocking the connection.');
-        console.log('Consider using SendGrid or another email service for production.');
+        console.log('💡 Recommendation: Use SendGrid for production (set SENDGRID_API_KEY)');
       }, 5000);
 
       this.transporter.verify((error, success) => {
         clearTimeout(verifyTimeout);
         if (error) {
-          console.log('❌ Email service error:', error.message);
+          console.log('❌ Gmail SMTP connection error:', error.message);
           console.log('Error code:', error.code);
-          console.log('Please check your email configuration in config/default.json');
           console.log('');
           console.log('Troubleshooting steps:');
-          console.log('1. Verify EMAIL_USER and EMAIL_PASS environment variables are set on Render');
+          console.log('1. Verify EMAIL_USER and EMAIL_PASS environment variables are set');
           console.log('2. Ensure you are using a Gmail App Password (not your regular password)');
           console.log('3. Check if 2-Step Verification is enabled on your Gmail account');
-          console.log('4. Consider switching to SendGrid for better reliability');
+          console.log('4. 🌟 RECOMMENDED: Switch to SendGrid for better reliability');
         } else {
-          console.log('✅ Email service is ready and connected');
-          console.log('📧 Using email:', process.env.EMAIL_USER || config.get('email.user'));
+          console.log('✅ Gmail SMTP service is ready and connected');
         }
       });
     } catch (error) {
-      console.error('❌ Failed to initialize email service:', error);
+      console.error('❌ Failed to initialize Gmail SMTP service:', error);
     }
   }
 
   async sendOTPEmail(email, otp, fullName = '', retries = 3) {
     console.log(`📧 Attempting to send OTP email to: ${email}`);
+    console.log(`🎯 Using provider: ${this.useSendGrid ? 'SendGrid' : 'Gmail SMTP'}`);
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const mailOptions = {
-          from: {
-            name: 'Ayanna Kiyanna Sinhala Institute',
-            address: process.env.EMAIL_USER || config.get('email.user')
-          },
-          to: email,
-          subject: 'Email Verification - Ayanna Kiyanna Sinhala Institute',
-          html: this.getOTPEmailTemplate(otp, fullName),
-          // Add timeout for individual email send
-          timeout: 25000 // 25 seconds
-        };
+        if (this.useSendGrid) {
+          // SendGrid implementation
+          const msg = {
+            to: email,
+            from: {
+              email: this.fromEmail,
+              name: this.fromName
+            },
+            subject: 'Email Verification - Ayanna Kiyanna Sinhala Institute',
+            html: this.getOTPEmailTemplate(otp, fullName)
+          };
 
-        console.log(`📤 Sending email (attempt ${attempt}/${retries})...`);
-        const result = await this.transporter.sendMail(mailOptions);
-        console.log('✅ OTP email sent successfully:', result.messageId);
-        return { success: true, messageId: result.messageId };
+          console.log(`📤 Sending email via SendGrid (attempt ${attempt}/${retries})...`);
+          const result = await sgMail.send(msg);
+          console.log('✅ OTP email sent successfully via SendGrid');
+          console.log('Response status:', result[0].statusCode);
+          return {
+            success: true,
+            messageId: result[0].headers['x-message-id'],
+            provider: 'SendGrid'
+          };
+        } else {
+          // Gmail SMTP implementation
+          const mailOptions = {
+            from: {
+              name: this.fromName,
+              address: this.fromEmail
+            },
+            to: email,
+            subject: 'Email Verification - Ayanna Kiyanna Sinhala Institute',
+            html: this.getOTPEmailTemplate(otp, fullName),
+            timeout: 25000 // 25 seconds
+          };
+
+          console.log(`📤 Sending email via Gmail SMTP (attempt ${attempt}/${retries})...`);
+          const result = await this.transporter.sendMail(mailOptions);
+          console.log('✅ OTP email sent successfully via Gmail SMTP');
+          console.log('Message ID:', result.messageId);
+          return {
+            success: true,
+            messageId: result.messageId,
+            provider: 'Gmail SMTP'
+          };
+        }
       } catch (error) {
         console.error(`❌ Failed to send OTP email (attempt ${attempt}/${retries}):`, error.message);
-        console.error('Error code:', error.code);
+
+        if (error.response) {
+          console.error('Error details:', error.response.body || error.code);
+        } else if (error.code) {
+          console.error('Error code:', error.code);
+        }
 
         // If this is the last attempt, return the error
         if (attempt === retries) {
           console.error('❌ All retry attempts exhausted. Email sending failed.');
-          console.error('Suggestion: Check Render environment variables or switch to SendGrid');
+          if (!this.useSendGrid) {
+            console.error('💡 Suggestion: Switch to SendGrid for better reliability');
+          }
           return {
             success: false,
             error: error.message,
-            code: error.code,
-            suggestion: 'Please verify your email configuration or contact support'
+            code: error.code || error.response?.body?.errors?.[0]?.message,
+            suggestion: this.useSendGrid
+              ? 'Please verify your SendGrid API key and sender verification'
+              : 'Please verify your email configuration or switch to SendGrid'
           };
         }
 
@@ -214,129 +291,141 @@ class EmailService {
     `;
   }
 
+  // Helper method to send email using either SendGrid or Gmail SMTP
+  async sendEmail(to, subject, html, options = {}) {
+    try {
+      if (this.useSendGrid) {
+        const msg = {
+          to,
+          from: {
+            email: this.fromEmail,
+            name: options.fromName || this.fromName
+          },
+          subject,
+          html,
+          ...(options.replyTo && { replyTo: options.replyTo })
+        };
+
+        const result = await sgMail.send(msg);
+        return {
+          success: true,
+          messageId: result[0].headers['x-message-id'],
+          provider: 'SendGrid'
+        };
+      } else {
+        const mailOptions = {
+          from: {
+            name: options.fromName || this.fromName,
+            address: this.fromEmail
+          },
+          to,
+          subject,
+          html,
+          ...(options.replyTo && { replyTo: options.replyTo })
+        };
+
+        const result = await this.transporter.sendMail(mailOptions);
+        return {
+          success: true,
+          messageId: result.messageId,
+          provider: 'Gmail SMTP'
+        };
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async sendWelcomeEmail(email, fullName) {
     try {
-      const mailOptions = {
-        from: {
-          name: 'Ayanna Kiyanna Sinhala Institute',
-          address: process.env.EMAIL_USER || config.get('email.user')
-        },
-        to: email,
-        subject: 'Welcome to Ayanna Kiyanna Sinhala Institute! 🌸',
-        html: this.getWelcomeEmailTemplate(fullName)
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Welcome email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      const result = await this.sendEmail(
+        email,
+        'Welcome to Ayanna Kiyanna Sinhala Institute! 🌸',
+        this.getWelcomeEmailTemplate(fullName)
+      );
+      console.log(`✅ Welcome email sent successfully via ${result.provider}`);
+      return result;
     } catch (error) {
-      console.error('Failed to send welcome email:', error);
+      console.error('❌ Failed to send welcome email:', error.message);
       return { success: false, error: error.message };
     }
   }
 
   async sendPasswordResetOTPEmail(email, otp, fullName = '') {
     try {
-      const mailOptions = {
-        from: {
-          name: 'Ayanna Kiyanna Sinhala Institute',
-          address: process.env.EMAIL_USER || config.get('email.user')
-        },
-        to: email,
-        subject: 'Password Reset - Ayanna Kiyanna Sinhala Institute',
-        html: this.getPasswordResetEmailTemplate(otp, fullName)
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Password reset OTP email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      const result = await this.sendEmail(
+        email,
+        'Password Reset - Ayanna Kiyanna Sinhala Institute',
+        this.getPasswordResetEmailTemplate(otp, fullName)
+      );
+      console.log(`✅ Password reset OTP email sent successfully via ${result.provider}`);
+      return result;
     } catch (error) {
-      console.error('Failed to send password reset OTP email:', error);
+      console.error('❌ Failed to send password reset OTP email:', error.message);
       return { success: false, error: error.message };
     }
   }
 
   async sendUserPasswordResetOTPEmail(email, otp, fullName = '') {
     try {
-      const mailOptions = {
-        from: {
-          name: 'Ayanna Kiyanna Sinhala Institute',
-          address: process.env.EMAIL_USER || config.get('email.user')
-        },
-        to: email,
-        subject: 'Account Password Reset - Ayanna Kiyanna Sinhala Institute',
-        html: this.getUserPasswordResetEmailTemplate(otp, fullName)
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('User password reset OTP email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      const result = await this.sendEmail(
+        email,
+        'Account Password Reset - Ayanna Kiyanna Sinhala Institute',
+        this.getUserPasswordResetEmailTemplate(otp, fullName)
+      );
+      console.log(`✅ User password reset OTP email sent successfully via ${result.provider}`);
+      return result;
     } catch (error) {
-      console.error('Failed to send user password reset OTP email:', error);
+      console.error('❌ Failed to send user password reset OTP email:', error.message);
       return { success: false, error: error.message };
     }
   }
 
   async sendContactNotificationEmail(adminEmail, contactData) {
     try {
-      const mailOptions = {
-        from: {
-          name: 'Ayanna Kiyanna Sinhala Institute - Contact Form',
-          address: process.env.EMAIL_USER || config.get('email.user')
-        },
-        to: adminEmail,
-        subject: `New Contact Message from ${contactData.name} - Ayanna Kiyanna`,
-        html: this.getContactNotificationEmailTemplate(contactData),
-        replyTo: contactData.email
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Contact notification email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      const result = await this.sendEmail(
+        adminEmail,
+        `New Contact Message from ${contactData.name} - Ayanna Kiyanna`,
+        this.getContactNotificationEmailTemplate(contactData),
+        {
+          fromName: 'Ayanna Kiyanna Sinhala Institute - Contact Form',
+          replyTo: contactData.email
+        }
+      );
+      console.log(`✅ Contact notification email sent successfully via ${result.provider}`);
+      return result;
     } catch (error) {
-      console.error('Failed to send contact notification email:', error);
+      console.error('❌ Failed to send contact notification email:', error.message);
       return { success: false, error: error.message };
     }
   }
 
   async sendPasswordResetConfirmationEmail(email, fullName = '') {
     try {
-      const mailOptions = {
-        from: {
-          name: 'Ayanna Kiyanna Sinhala Institute',
-          address: process.env.EMAIL_USER || config.get('email.user')
-        },
-        to: email,
-        subject: 'Password Reset Successful - Ayanna Kiyanna Sinhala Institute',
-        html: this.getPasswordResetConfirmationTemplate(fullName)
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Password reset confirmation email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      const result = await this.sendEmail(
+        email,
+        'Password Reset Successful - Ayanna Kiyanna Sinhala Institute',
+        this.getPasswordResetConfirmationTemplate(fullName)
+      );
+      console.log(`✅ Password reset confirmation email sent successfully via ${result.provider}`);
+      return result;
     } catch (error) {
-      console.error('Failed to send password reset confirmation email:', error);
+      console.error('❌ Failed to send password reset confirmation email:', error.message);
       return { success: false, error: error.message };
     }
   }
 
   async sendUserPasswordResetConfirmationEmail(email, fullName = '') {
     try {
-      const mailOptions = {
-        from: {
-          name: 'Ayanna Kiyanna Sinhala Institute',
-          address: process.env.EMAIL_USER || config.get('email.user')
-        },
-        to: email,
-        subject: 'Account Password Reset Successful - Ayanna Kiyanna Sinhala Institute',
-        html: this.getUserPasswordResetConfirmationTemplate(fullName)
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('User password reset confirmation email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
+      const result = await this.sendEmail(
+        email,
+        'Account Password Reset Successful - Ayanna Kiyanna Sinhala Institute',
+        this.getUserPasswordResetConfirmationTemplate(fullName)
+      );
+      console.log(`✅ User password reset confirmation email sent successfully via ${result.provider}`);
+      return result;
     } catch (error) {
-      console.error('Failed to send user password reset confirmation email:', error);
+      console.error('❌ Failed to send user password reset confirmation email:', error.message);
       return { success: false, error: error.message };
     }
   }
